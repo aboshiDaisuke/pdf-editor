@@ -28,26 +28,24 @@ body {
 
 /* ===== Header ===== */
 .header {
-  height: 52px; background: var(--surface);
+  height: 50px; background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
-  padding: 0 16px; gap: 2px;
+  padding: 0 12px; gap: 2px;
   box-shadow: var(--shadow);
   position: relative; z-index: 100;
 }
 .logo {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 15px; font-weight: 700; letter-spacing: -0.3px;
-  padding-right: 12px; color: var(--txt);
-  user-select: none;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 700; letter-spacing: -0.3px;
+  padding-right: 10px; color: var(--txt); user-select: none;
 }
-.logo-icon { width: 22px; height: 22px; color: var(--pri); }
-.sep { width: 1px; height: 28px; background: var(--border); margin: 0 8px; flex-shrink: 0; }
-
+.logo-icon { width: 20px; height: 20px; color: var(--pri); }
+.sep { width: 1px; height: 26px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
 .toolbar-group { display: flex; align-items: center; gap: 2px; }
 
 .tbtn {
-  height: 34px; padding: 0 12px;
+  height: 32px; padding: 0 10px;
   border: 1px solid transparent; border-radius: 7px;
   background: transparent; color: var(--txt2);
   font-size: 12px; font-weight: 500;
@@ -57,299 +55,154 @@ body {
 }
 .tbtn:hover { background: var(--bg); color: var(--txt); }
 .tbtn:active { transform: scale(0.97); }
-.tbtn.active { background: var(--pri-l); color: var(--pri); border-color: rgba(99,102,241,.2); }
+.tbtn.active { background: var(--pri-l); color: var(--pri); border-color: rgba(99,102,241,.25); }
 .tbtn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
 .tbtn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.tbtn-primary {
-  background: var(--pri); color: #fff; border-color: var(--pri);
-  font-weight: 600;
-}
+.tbtn.icon-only { padding: 0 8px; }
+.tbtn-primary { background: var(--pri); color: #fff; border-color: var(--pri); font-weight: 600; }
 .tbtn-primary:hover { background: var(--pri-h); }
 
-.zoom-display {
-  font-size: 11px; font-weight: 700; color: var(--txt3);
-  min-width: 44px; text-align: center; user-select: none;
-}
-
+.zoom-display { font-size: 11px; font-weight: 700; color: var(--txt3); min-width: 42px; text-align: center; user-select: none; }
 .spacer { flex: 1; }
+.doc-title { font-size: 12px; font-weight: 600; color: var(--txt2); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+.doc-title .dot { color: var(--amber); margin-left: 4px; }
+
+/* ===== Tool options bar ===== */
+.tool-options {
+  height: 40px; background: var(--surface-h);
+  border-bottom: 1px solid var(--border);
+  display: none; align-items: center; gap: 14px;
+  padding: 0 16px; position: relative; z-index: 90;
+}
+.tool-options.show { display: flex; }
+.tool-options .to-label { font-size: 12px; font-weight: 600; color: var(--txt2); }
+.tool-options .to-field { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--txt3); font-weight: 600; }
+.tool-options input[type="color"] { width: 32px; height: 26px; border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer; padding: 2px; }
+.tool-options input[type="range"] { width: 110px; accent-color: var(--pri); }
+.tool-options .to-chk { display: flex; align-items: center; gap: 5px; cursor: pointer; }
 
 /* ===== Layout ===== */
-.main-layout { display: flex; height: calc(100vh - 52px); }
+.main-layout { display: flex; height: calc(100vh - 50px); }
+.main-layout.has-options { height: calc(100vh - 90px); }
 
 /* ===== Sidebar ===== */
-.sidebar {
-  width: 210px; background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  flex-shrink: 0;
-}
-.sidebar-head {
-  padding: 14px 14px 10px;
-  display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-}
-.sidebar-head h2 {
-  font-size: 11px; font-weight: 700; color: var(--txt3);
-  text-transform: uppercase; letter-spacing: .6px;
-}
-.sidebar-actions { display: flex; gap: 4px; }
-.sb-icon-btn {
-  width: 28px; height: 28px;
-  border: 1px solid var(--border); border-radius: 6px;
-  background: var(--surface); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all var(--tr); color: var(--txt3);
-}
-.sb-icon-btn svg { width: 14px; height: 14px; }
+.sidebar { width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-head { padding: 12px 12px 8px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.sidebar-head h2 { font-size: 11px; font-weight: 700; color: var(--txt3); text-transform: uppercase; letter-spacing: .6px; }
+.sidebar-actions { display: flex; gap: 3px; flex-wrap: wrap; }
+.sb-icon-btn { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--tr); color: var(--txt3); }
+.sb-icon-btn svg { width: 13px; height: 13px; }
 .sb-icon-btn:hover { background: var(--bg); border-color: var(--border-s); color: var(--txt2); }
+.sb-icon-btn.active { background: var(--pri-l); border-color: rgba(99,102,241,.25); color: var(--pri); }
 .sb-icon-btn.danger:hover { background: #fef2f2; border-color: #fecaca; color: var(--red); }
 
-.page-list {
-  flex: 1; overflow-y: auto; padding: 8px;
-  display: flex; flex-direction: column; gap: 4px;
-}
+.page-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
 .page-list::-webkit-scrollbar { width: 4px; }
 .page-list::-webkit-scrollbar-thumb { background: var(--border-s); border-radius: 2px; }
 
-.page-item {
-  padding: 8px; border-radius: var(--radius);
-  cursor: grab; font-size: 11px; font-weight: 600; color: var(--txt3);
-  transition: transform .2s ease, box-shadow .2s ease, background .15s ease, border-color .15s ease;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  position: relative;
-  border: 2px solid transparent;
-}
+.page-item { padding: 8px; border-radius: var(--radius); cursor: grab; font-size: 11px; font-weight: 600; color: var(--txt3); transition: transform .2s ease, box-shadow .2s ease, background .15s ease, border-color .15s ease; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; border: 2px solid transparent; }
 .page-item:hover { background: var(--surface-h); border-color: var(--border); }
-.page-item.active {
-  border-color: var(--pri); background: var(--pri-l); color: var(--pri);
-  box-shadow: 0 2px 8px rgba(99,102,241,.15);
-}
-.page-item.dragging {
-  opacity: 0.3; transform: scale(0.95);
-}
+.page-item.active { border-color: var(--pri); background: var(--pri-l); color: var(--pri); box-shadow: 0 2px 8px rgba(99,102,241,.15); }
+.page-item.dragging { opacity: 0.3; transform: scale(0.95); }
 .page-item.drag-over-top { border-top: 3px solid var(--pri); border-radius: 3px 3px var(--radius) var(--radius); }
 .page-item.drag-over-bottom { border-bottom: 3px solid var(--pri); border-radius: var(--radius) var(--radius) 3px 3px; }
-.page-item .page-thumb {
-  width: 100%; aspect-ratio: 210 / 297;
-  object-fit: contain; border-radius: 4px;
-  background: #fff; display: block;
-  box-shadow: 0 1px 4px rgba(0,0,0,.1);
-  pointer-events: none;
-}
+.page-item .page-thumb { width: 100%; aspect-ratio: 210 / 297; object-fit: contain; border-radius: 4px; background: #fff; display: block; box-shadow: 0 1px 4px rgba(0,0,0,.1); pointer-events: none; }
 .page-item .page-label { text-align: center; pointer-events: none; }
-.page-item .page-check {
-  position: absolute; top: 6px; left: 6px;
-  width: 18px; height: 18px; border-radius: 4px;
-  border: 2px solid var(--border-s); background: var(--surface);
-  cursor: pointer; display: none; z-index: 2;
-  appearance: none; -webkit-appearance: none; margin: 0;
-  transition: all var(--tr);
-}
-.page-item .page-check:checked {
-  background: var(--pri); border-color: var(--pri);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
-  background-size: 14px; background-position: center; background-repeat: no-repeat;
-}
+.page-item .page-check { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border-s); background: var(--surface); cursor: pointer; display: none; z-index: 2; appearance: none; -webkit-appearance: none; margin: 0; transition: all var(--tr); }
+.page-item .page-check:checked { background: var(--pri); border-color: var(--pri); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E"); background-size: 14px; background-position: center; background-repeat: no-repeat; }
 .sidebar.select-mode .page-item .page-check { display: block; }
 .sidebar.select-mode .page-item { padding-left: 28px; }
 .page-item.selected { background: var(--pri-l); border-color: rgba(99,102,241,.3); }
 
-.sidebar-footer {
-  padding: 10px 8px; border-top: 1px solid var(--border);
-  display: flex; gap: 4px;
-}
-.sidebar-footer button {
-  flex: 1; height: 30px;
-  border: 1px solid var(--border); border-radius: 6px;
-  background: var(--surface); cursor: pointer;
-  font-size: 11px; font-weight: 500; color: var(--txt2);
-  transition: all var(--tr);
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-}
+.sidebar-footer { padding: 10px 8px; border-top: 1px solid var(--border); display: flex; gap: 4px; }
+.sidebar-footer button { flex: 1; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; font-size: 11px; font-weight: 500; color: var(--txt2); transition: all var(--tr); display: flex; align-items: center; justify-content: center; gap: 4px; }
 .sidebar-footer button:hover { background: var(--bg); border-color: var(--border-s); }
 .sidebar-footer button svg { width: 12px; height: 12px; }
 
 /* ===== Editor Area ===== */
-.editor-area {
-  flex: 1; overflow: auto; background: var(--bg);
-  display: flex; align-items: flex-start; justify-content: center;
-  position: relative;
-}
-.editor-area.drag-over::after {
-  content: ''; position: absolute; inset: 16px;
-  border: 3px dashed var(--pri); border-radius: 16px;
-  background: rgba(99,102,241,.04);
-  pointer-events: none; z-index: 50;
-}
+.editor-area { flex: 1; overflow: auto; background: var(--bg); display: flex; align-items: flex-start; justify-content: center; position: relative; }
+.editor-area.drag-over::after { content: ''; position: absolute; inset: 16px; border: 3px dashed var(--pri); border-radius: 16px; background: rgba(99,102,241,.04); pointer-events: none; z-index: 50; }
 
-/* Empty state */
-.empty-state {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 6px;
-  user-select: none;
-}
-.empty-state svg {
-  width: 72px; height: 72px; color: var(--txt3); opacity: .3;
-  margin-bottom: 12px;
-}
+.empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; user-select: none; }
+.empty-state svg { width: 72px; height: 72px; color: var(--txt3); opacity: .3; margin-bottom: 12px; }
 .empty-state h2 { font-size: 18px; font-weight: 700; color: var(--txt2); }
 .empty-state p { font-size: 13px; color: var(--txt3); margin-bottom: 20px; }
-.btn-open {
-  padding: 12px 32px; background: var(--pri); color: #fff;
-  border: none; border-radius: var(--radius); font-size: 14px;
-  font-weight: 600; cursor: pointer; transition: all var(--tr);
-  box-shadow: 0 2px 8px rgba(99,102,241,.3);
-}
+.btn-open { padding: 12px 32px; background: var(--pri); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--tr); box-shadow: 0 2px 8px rgba(99,102,241,.3); }
 .btn-open:hover { background: var(--pri-h); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.4); }
-.btn-open:active { transform: translateY(0); }
 
-/* Page display */
 .page-display { padding: 32px; flex-shrink: 0; }
-.page-canvas {
-  box-shadow: var(--shadow-lg); border-radius: 3px;
-  cursor: crosshair; display: block; background: #fff;
-  transition: box-shadow var(--tr);
-}
-.page-canvas:hover { box-shadow: var(--shadow-xl); }
+.page-stage { position: relative; line-height: 0; }
+.page-canvas { box-shadow: var(--shadow-lg); border-radius: 3px; display: block; background: #fff; transition: box-shadow var(--tr); }
+.page-stage.tool-draw .page-canvas { cursor: crosshair; }
+.page-stage.tool-text .page-canvas { cursor: text; }
+.overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+.overlay .search-hit { fill: rgba(245,158,11,.35); stroke: var(--amber); stroke-width: 1; }
+.overlay .search-hit.current { fill: rgba(99,102,241,.4); stroke: var(--pri); stroke-width: 1.5; }
 
-/* ===== Modal ===== */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(15,23,42,.4); backdrop-filter: blur(4px);
-  z-index: 500; display: flex; align-items: center; justify-content: center;
-  animation: fadeIn .15s ease-out;
-}
-.modal {
-  background: var(--surface); border-radius: 16px;
-  width: 620px; max-width: calc(100vw - 40px);
-  max-height: 80vh; display: flex; flex-direction: column;
-  box-shadow: var(--shadow-xl);
-  animation: modalIn .2s ease-out;
-}
+/* ===== Right panel (search / forms) ===== */
+.right-panel { width: 280px; background: var(--surface); border-left: 1px solid var(--border); display: none; flex-direction: column; flex-shrink: 0; }
+.right-panel.show { display: flex; }
+.rp-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.rp-head h3 { font-size: 13px; font-weight: 700; }
+.rp-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+.rp-search-input { display: flex; gap: 6px; margin-bottom: 12px; }
+.rp-search-input input { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; outline: none; }
+.rp-search-input input:focus { border-color: var(--pri); }
+.rp-search-input button { padding: 0 14px; border: none; border-radius: 8px; background: var(--pri); color: #fff; font-weight: 600; cursor: pointer; }
+.rp-count { font-size: 11px; color: var(--txt3); font-weight: 600; margin-bottom: 8px; }
+.search-result { padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; color: var(--txt2); display: flex; align-items: center; gap: 8px; transition: all var(--tr); }
+.search-result:hover { background: var(--pri-l); }
+.search-result.active { background: var(--pri-l); color: var(--pri); font-weight: 600; }
+.search-result .pg { font-size: 10px; font-weight: 700; color: var(--txt3); background: var(--bg); padding: 2px 6px; border-radius: 4px; }
+.form-field { margin-bottom: 14px; }
+.form-field label { display: block; font-size: 11px; font-weight: 600; color: var(--txt2); margin-bottom: 4px; }
+.form-field input[type="text"], .form-field select { width: 100%; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 13px; outline: none; }
+.form-field input:focus, .form-field select:focus { border-color: var(--pri); }
+.form-field .ftype { font-size: 10px; color: var(--txt3); float: right; font-weight: 600; }
+.rp-empty { font-size: 12px; color: var(--txt3); text-align: center; padding: 30px 10px; }
+
+/* ===== Modal / Dialog ===== */
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.4); backdrop-filter: blur(4px); z-index: 500; display: flex; align-items: center; justify-content: center; animation: fadeIn .15s ease-out; }
+.modal { background: var(--surface); border-radius: 16px; width: 620px; max-width: calc(100vw - 40px); max-height: 80vh; display: flex; flex-direction: column; box-shadow: var(--shadow-xl); animation: modalIn .2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } }
 @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(8px); } }
-
-.modal-header {
-  padding: 24px 28px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.modal-header h2 { font-size: 18px; font-weight: 700; }
-.modal-close {
-  width: 32px; height: 32px; border: none; border-radius: 8px;
-  background: var(--bg); cursor: pointer; font-size: 18px;
-  color: var(--txt3); transition: all var(--tr);
-  display: flex; align-items: center; justify-content: center;
-}
+.modal-header { padding: 22px 26px 14px; display: flex; align-items: center; justify-content: space-between; }
+.modal-header h2 { font-size: 17px; font-weight: 700; }
+.modal-close { width: 32px; height: 32px; border: none; border-radius: 8px; background: var(--bg); cursor: pointer; font-size: 18px; color: var(--txt3); transition: all var(--tr); display: flex; align-items: center; justify-content: center; }
 .modal-close:hover { background: var(--border); color: var(--txt); }
-
-.modal-subtitle { padding: 0 28px 16px; font-size: 12px; color: var(--txt3); }
-
-.modal-body { flex: 1; overflow-y: auto; padding: 0 28px 20px; }
-
-.text-row {
-  display: flex; align-items: center;
-  padding: 10px 14px; background: var(--bg);
-  border-radius: var(--radius); margin-bottom: 6px;
-  gap: 10px; transition: all var(--tr);
-  border: 1px solid transparent;
-}
+.modal-subtitle { padding: 0 26px 14px; font-size: 12px; color: var(--txt3); }
+.modal-body { flex: 1; overflow-y: auto; padding: 0 26px 18px; }
+.text-row { display: flex; align-items: center; padding: 10px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 6px; gap: 10px; transition: all var(--tr); border: 1px solid transparent; }
 .text-row:hover { background: var(--pri-l); border-color: rgba(99,102,241,.15); }
-.text-content {
-  flex: 1; font-size: 13px; overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap;
-  color: var(--txt);
-}
-.text-meta {
-  font-size: 10px; color: var(--txt3); font-weight: 600;
-  padding: 2px 6px; background: var(--surface); border-radius: 4px;
-  white-space: nowrap;
-}
-.text-edit-btn {
-  padding: 6px 16px; border: none; border-radius: 6px;
-  background: var(--pri); color: #fff;
-  font-size: 11px; font-weight: 600; cursor: pointer;
-  transition: all var(--tr); white-space: nowrap;
-}
+.text-content { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--txt); }
+.text-meta { font-size: 10px; color: var(--txt3); font-weight: 600; padding: 2px 6px; background: var(--surface); border-radius: 4px; white-space: nowrap; }
+.text-edit-btn { padding: 6px 16px; border: none; border-radius: 6px; background: var(--pri); color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; transition: all var(--tr); white-space: nowrap; }
 .text-edit-btn:hover { background: var(--pri-h); }
-
-.modal-footer {
-  padding: 16px 28px 24px; text-align: right;
-  border-top: 1px solid var(--border);
-}
-.modal-footer button {
-  padding: 8px 22px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--surface);
-  cursor: pointer; font-size: 12px; font-weight: 500; color: var(--txt2);
-  transition: all var(--tr);
-}
+.modal-footer { padding: 14px 26px 22px; text-align: right; border-top: 1px solid var(--border); }
+.modal-footer button { padding: 8px 22px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 500; color: var(--txt2); transition: all var(--tr); }
 .modal-footer button:hover { background: var(--bg); }
 
-/* ===== Input Dialog ===== */
-.dialog-overlay {
-  position: fixed; inset: 0;
-  background: rgba(15,23,42,.35); backdrop-filter: blur(3px);
-  z-index: 600; display: flex; align-items: center; justify-content: center;
-  animation: fadeIn .12s ease-out;
-}
-.dialog {
-  background: #fff; border-radius: 14px; padding: 28px;
-  width: 440px; max-width: calc(100vw - 40px);
-  box-shadow: var(--shadow-xl);
-  animation: modalIn .18s ease-out;
-}
+.dialog-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.35); backdrop-filter: blur(3px); z-index: 600; display: flex; align-items: center; justify-content: center; animation: fadeIn .12s ease-out; }
+.dialog { background: #fff; border-radius: 14px; padding: 26px; width: 440px; max-width: calc(100vw - 40px); box-shadow: var(--shadow-xl); animation: modalIn .18s ease-out; }
 .dialog h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-.dialog input[type="text"], .dialog textarea {
-  width: 100%; padding: 10px 14px;
-  border: 1.5px solid var(--border); border-radius: var(--radius);
-  font-size: 14px; font-family: inherit;
-  outline: none; transition: all var(--tr);
-  margin-bottom: 8px;
-}
-.dialog input[type="text"]:focus, .dialog textarea:focus {
-  border-color: var(--pri);
-  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
-}
-.dialog-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+.dialog input[type="text"], .dialog textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; outline: none; transition: all var(--tr); margin-bottom: 8px; }
+.dialog textarea { min-height: 90px; resize: vertical; }
+.dialog input[type="text"]:focus, .dialog textarea:focus { border-color: var(--pri); box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+.dialog-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
 .dialog-row label { font-size: 12px; font-weight: 600; color: var(--txt2); white-space: nowrap; }
-.dialog-row input[type="number"] {
-  width: 70px; padding: 6px 8px;
-  border: 1.5px solid var(--border); border-radius: 6px;
-  font-size: 13px; outline: none; transition: all var(--tr);
-}
-.dialog-row input[type="number"]:focus { border-color: var(--pri); }
-.dialog-row input[type="color"] {
-  width: 36px; height: 30px; border: 1.5px solid var(--border);
-  border-radius: 6px; cursor: pointer; padding: 2px;
-}
-.dialog-actions {
-  display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;
-}
-.dialog-actions button {
-  padding: 9px 22px; border-radius: var(--radius); border: none;
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: all var(--tr);
-}
+.dialog-row input[type="number"] { width: 70px; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+.dialog-row input[type="color"] { width: 36px; height: 30px; border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer; padding: 2px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.dialog-actions button { padding: 9px 22px; border-radius: var(--radius); border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--tr); }
 .dialog-actions .btn-cancel { background: var(--bg); color: var(--txt2); }
 .dialog-actions .btn-cancel:hover { background: var(--border); }
 .dialog-actions .btn-ok { background: var(--pri); color: #fff; }
 .dialog-actions .btn-ok:hover { background: var(--pri-h); }
 
 /* ===== Toast ===== */
-.toast-container {
-  position: fixed; bottom: 24px; right: 24px;
-  z-index: 900; display: flex; flex-direction: column; gap: 8px;
-}
-.toast {
-  padding: 12px 20px; border-radius: var(--radius);
-  font-size: 13px; font-weight: 500; color: #fff;
-  box-shadow: var(--shadow-lg);
-  animation: toastIn .25s ease-out, toastOut .25s ease-in 2.6s forwards;
-  display: flex; align-items: center; gap: 8px;
-}
-.toast-ok { background: var(--green); }
-.toast-err { background: var(--red); }
-.toast-info { background: var(--pri); }
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 900; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500; color: #fff; box-shadow: var(--shadow-lg); animation: toastIn .25s ease-out, toastOut .25s ease-in 2.6s forwards; display: flex; align-items: center; gap: 8px; }
+.toast-ok { background: var(--green); } .toast-err { background: var(--red); } .toast-info { background: var(--pri); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.95); } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.95); } }
 </style>
@@ -359,131 +212,122 @@ body {
 <!-- Header -->
 <header class="header">
   <div class="logo">
-    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-    </svg>
+    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
     PDF Editor
   </div>
   <div class="sep"></div>
 
   <div class="toolbar-group">
-    <button class="tbtn tbtn-primary" onclick="openFile()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-      開く
+    <button class="tbtn tbtn-primary" onclick="openFile()" title="開く">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>開く
     </button>
-    <button class="tbtn" id="btnSave" onclick="download()" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-      上書き保存
+    <button class="tbtn" id="btnSave" onclick="save()" disabled title="保存 (⌘S)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存
     </button>
-    <button class="tbtn" id="btnSaveAs" onclick="saveAs()" disabled>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      名前を付けて保存
+    <button class="tbtn" id="btnSaveAs" onclick="saveAs()" disabled title="名前を付けて保存">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>別名で保存
     </button>
   </div>
   <div class="sep"></div>
 
   <div class="toolbar-group">
-    <button class="tbtn" id="btnUndo" onclick="doUndo()" disabled>
+    <button class="tbtn icon-only" id="btnUndo" onclick="doUndo()" disabled title="元に戻す (⌘Z)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-      戻す
     </button>
-    <button class="tbtn" id="btnRedo" onclick="doRedo()" disabled>
+    <button class="tbtn icon-only" id="btnRedo" onclick="doRedo()" disabled title="やり直し (⌘⇧Z)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      やり直し
     </button>
   </div>
   <div class="sep"></div>
 
   <div class="toolbar-group">
-    <button class="tbtn" onclick="zoomOut()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-    </button>
+    <button class="tbtn icon-only" onclick="zoomOut()" title="縮小"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
     <span class="zoom-display" id="zoomLbl">100%</span>
-    <button class="tbtn" onclick="zoomIn()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-    </button>
+    <button class="tbtn icon-only" onclick="zoomIn()" title="拡大"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
   </div>
   <div class="sep"></div>
 
+  <!-- Edit tools -->
   <div class="toolbar-group">
-    <button class="tbtn" id="btnEditText" onclick="editTextMode()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      テキスト編集
-    </button>
-    <button class="tbtn" onclick="addTextMode()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      テキスト追加
-    </button>
-    <button class="tbtn" onclick="addImageMode()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      画像挿入
-    </button>
+    <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
+    <button class="tbtn tool" data-tool="addText" onclick="setTool('addText')" title="テキスト追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>文字</button>
+    <button class="tbtn tool" data-tool="addImage" onclick="setTool('addImage')" title="画像挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>画像</button>
   </div>
   <div class="sep"></div>
 
+  <!-- Markup tools -->
   <div class="toolbar-group">
-    <button class="tbtn" id="btnRect" onclick="setDrawMode('rect')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-      四角
-    </button>
-    <button class="tbtn" id="btnEllipse" onclick="setDrawMode('ellipse')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="8"/></svg>
-      楕円
-    </button>
-    <button class="tbtn" id="btnLine" onclick="setDrawMode('line')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg>
-      直線
-    </button>
+    <button class="tbtn tool icon-only" data-tool="highlight" onclick="setTool('highlight')" title="ハイライト"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-4 4v3h3l4-4"/><path d="M22 2l-7 7-4-4 7-7z" transform="translate(-2 4)"/><line x1="3" y1="22" x2="21" y2="22"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="underline" onclick="setTool('underline')" title="下線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="strikeout" onclick="setTool('strikeout')" title="取り消し線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M6 5h12M9 5v4M15 19a5 5 0 0 1-6 0"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="ink" onclick="setTool('ink')" title="フリーハンド"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="arrow" onclick="setTool('arrow')" title="矢印"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="note" onclick="setTool('note')" title="コメント（付箋）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+  </div>
+  <div class="sep"></div>
+
+  <!-- Shape tools -->
+  <div class="toolbar-group">
+    <button class="tbtn tool icon-only" data-tool="rect" onclick="setTool('rect')" title="四角"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="ellipse" onclick="setTool('ellipse')" title="楕円"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="8"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="line" onclick="setTool('line')" title="直線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg></button>
+  </div>
+
+  <div class="spacer"></div>
+  <span class="doc-title" id="docTitle"></span>
+  <div class="sep"></div>
+
+  <div class="toolbar-group">
+    <button class="tbtn icon-only" id="btnSearch" onclick="togglePanel('search')" title="検索 (⌘F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+    <button class="tbtn icon-only" id="btnForms" onclick="togglePanel('forms')" title="フォーム入力"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
   </div>
 </header>
 
+<!-- Tool options bar -->
+<div class="tool-options" id="toolOptions">
+  <span class="to-label" id="toLabel">ツール</span>
+  <div class="to-field"><span>色</span><input type="color" id="toColor" value="#ffd400"></div>
+  <div class="to-field" id="toWidthWrap"><span>太さ</span><input type="range" id="toWidth" min="1" max="12" step="1" value="2"><span id="toWidthVal">2</span></div>
+  <label class="to-chk to-field" id="toFillWrap"><input type="checkbox" id="toFill"> 塗りつぶし</label>
+</div>
+
 <!-- Main Layout -->
-<div class="main-layout">
+<div class="main-layout" id="mainLayout">
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
-      <h2>Pages</h2>
+      <h2>ページ</h2>
       <div class="sidebar-actions">
-        <button class="sb-icon-btn" onclick="toggleSelectMode()" title="選択モード" id="btnSelectMode">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        </button>
-        <button class="sb-icon-btn" onclick="addPage()" title="ページ追加">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <button class="sb-icon-btn danger" onclick="deletePage()" title="ページ削除">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
+        <button class="sb-icon-btn" onclick="toggleSelectMode()" title="選択モード" id="btnSelectMode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+        <button class="sb-icon-btn" onclick="rotateCurrent()" title="90°回転"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+        <button class="sb-icon-btn" onclick="importPdf()" title="別PDFを挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></button>
+        <button class="sb-icon-btn" onclick="extractPages()" title="選択ページを書き出し"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+        <button class="sb-icon-btn" onclick="addPage()" title="空白ページ追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="sb-icon-btn danger" onclick="deletePage()" title="ページ削除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
       </div>
     </div>
     <div class="page-list" id="pageList"></div>
     <div class="sidebar-footer">
-      <button onclick="movePage(-1)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-        上へ
-      </button>
-      <button onclick="movePage(1)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-        下へ
-      </button>
+      <button onclick="movePage(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>上へ</button>
+      <button onclick="movePage(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>下へ</button>
     </div>
   </aside>
 
   <!-- Editor -->
   <main class="editor-area" id="editorArea">
     <div class="empty-state" id="emptyState">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/>
-        <line x1="16" y1="17" x2="8" y2="17"/>
-        <polyline points="10 9 9 9 8 9"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       <h2>PDFファイルを開く</h2>
       <p>ドラッグ&ドロップ または下のボタンから</p>
       <button class="btn-open" onclick="openFile()">ファイルを選択</button>
     </div>
   </main>
+
+  <!-- Right panel -->
+  <aside class="right-panel" id="rightPanel">
+    <div class="rp-head"><h3 id="rpTitle">検索</h3><button class="modal-close" onclick="togglePanel(null)">&times;</button></div>
+    <div class="rp-body" id="rpBody"></div>
+  </aside>
 </div>
 
 <input type="file" id="fileInput" accept=".pdf" hidden>
@@ -491,10 +335,22 @@ body {
 <div class="toast-container" id="toasts"></div>
 
 <script>
+const SVGNS = 'http://www.w3.org/2000/svg';
 // ── State ──
-const S = { pages: 0, cur: 0, zoom: 2, mode: null, drawColor: [0,0,0], drawWidth: 2, drawStart: null };
+const S = {
+  pages: 0, cur: 0, zoom: 2, mode: null,
+  filename: null, hasPath: false, dirty: false,
+  toolColor: '#ffd400', toolWidth: 2, toolFill: false,
+  draw: null,                 // transient drag/ink state
+  panel: null,                // 'search' | 'forms' | null
+  search: { q: '', results: [], idx: -1 },
+};
+let selectMode = false;
+const selectedPages = new Set();
+let thumbGen = 0;             // bumped on structural changes (indices shift)
+const thumbRev = {};          // per-page content revision
+let dragSrcIdx = null;
 
-// ── Helpers ──
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
@@ -505,48 +361,91 @@ function toast(msg, type = 'info') {
   $('#toasts').appendChild(el);
   setTimeout(() => el.remove(), 3200);
 }
-
 function hexToRgb01(h) {
   h = h.replace('#', '');
   return [parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255];
 }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function hasNative() { return !!(window.pywebview && window.pywebview.api); }
 
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escAttr(s) { return s.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// ── Central API helper: rejects on !ok or {error} ──
+async function api(path, body, init = {}) {
+  const opt = Object.assign({ method: body === undefined ? 'GET' : 'POST' }, init);
+  if (body !== undefined) {
+    if (body instanceof FormData) { opt.body = body; }
+    else { opt.headers = Object.assign({ 'Content-Type': 'application/json' }, opt.headers); opt.body = JSON.stringify(body); }
+  }
+  const r = await fetch(path, opt);
+  let j = null;
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok || (j && j.error)) throw new Error((j && j.error) || `サーバーエラー (${r.status})`);
+  return j || {};
+}
 
-// ── File Open ──
-function openFile() { $('#fileInput').click(); }
+// ── Apply server status to client state + buttons ──
+function applyStatus(j) {
+  if (!j) return;
+  if (typeof j.pages === 'number') S.pages = j.pages;
+  if ('filename' in j) S.filename = j.filename;
+  if ('has_path' in j) S.hasPath = j.has_path;
+  if ('dirty' in j) S.dirty = j.dirty;
+  $('#btnUndo').disabled = !j.can_undo;
+  $('#btnRedo').disabled = !j.can_redo;
+  updateTitle();
+}
+function updateTitle() {
+  $('#docTitle').innerHTML = S.filename ? escHtml(S.filename) + (S.dirty ? '<span class="dot">●</span>' : '') : '';
+}
 
-$('#fileInput').addEventListener('change', async e => {
-  const f = e.target.files[0]; if (!f) return;
-  await loadPdf(f);
-  e.target.value = '';
-});
+// ── Thumbnails (per-page revision so edits refresh the right thumb) ──
+function invalidateAllThumbs() { thumbGen++; for (const k in thumbRev) delete thumbRev[k]; }
+function invalidateThumb(i) { thumbRev[i] = (thumbRev[i] || 0) + 1; }
+function thumbSrc(i) { return `/api/page/${i}?zoom=0.4&v=${thumbGen}_${thumbRev[i] || 0}`; }
 
+// ── Open ──
+function openFile() {
+  if (hasNative()) {
+    window.pywebview.api.pick_open().then(p => { if (p) openByPath(p); });
+  } else { $('#fileInput').click(); }
+}
+async function openByPath(path) {
+  toast('読み込み中...', 'info');
+  try { onOpened(await api('/api/open_path', { path })); }
+  catch (e) { toast(e.message, 'err'); }
+}
 async function loadPdf(file) {
   toast('読み込み中...', 'info');
   const fd = new FormData(); fd.append('file', file);
-  try {
-    const r = await fetch('/api/open', { method: 'POST', body: fd });
-    if (!r.ok) { toast(`サーバーエラー: ${r.status}`, 'err'); return; }
-    const j = await r.json();
-    if (j.error) { toast(j.error, 'err'); return; }
-    S.pages = j.pages; S.cur = 0; S.filename = j.filename;
-    $('#emptyState').style.display = 'none';
-    $('#btnSave').disabled = false; $('#btnSaveAs').disabled = false;
-    renderPageList();
-    renderPage();
-    toast(`${j.filename} (${j.pages}ページ)`, 'ok');
-  } catch (e) {
-    toast('ファイルを開けません: ' + e.message, 'err');
-    console.error('loadPdf error:', e);
-  }
+  try { onOpened(await api('/api/open', fd)); }
+  catch (e) { toast('ファイルを開けません: ' + e.message, 'err'); }
 }
+function onOpened(j) {
+  S.cur = 0;
+  // reset transient + selection state for the new document
+  selectMode = false; selectedPages.clear();
+  $('#sidebar').classList.remove('select-mode');
+  $('#btnSelectMode').classList.remove('active');
+  S.search = { q: '', results: [], idx: -1 };
+  clearTool();
+  invalidateAllThumbs();
+  applyStatus(j);
+  $('#emptyState').style.display = 'none';
+  $('#btnSave').disabled = false; $('#btnSaveAs').disabled = false;
+  renderPageList(); renderPage();
+  if (S.panel) refreshPanel();
+  toast(`${j.filename || 'PDF'} (${j.pages}ページ)`, 'ok');
+}
+
+$('#fileInput').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (f) await loadPdf(f);
+  e.target.value = '';
+});
 
 // ── Drag & Drop ──
 const edArea = $('#editorArea');
 edArea.addEventListener('dragover', e => { e.preventDefault(); edArea.classList.add('drag-over'); });
-edArea.addEventListener('dragleave', () => edArea.classList.remove('drag-over'));
+edArea.addEventListener('dragleave', e => { if (!edArea.contains(e.relatedTarget)) edArea.classList.remove('drag-over'); });
 edArea.addEventListener('drop', async e => {
   e.preventDefault(); edArea.classList.remove('drag-over');
   const f = e.dataTransfer.files[0];
@@ -556,9 +455,6 @@ edArea.addEventListener('drop', async e => {
 });
 
 // ── Selection mode ──
-let selectMode = false;
-const selectedPages = new Set();
-
 function toggleSelectMode() {
   selectMode = !selectMode;
   selectedPages.clear();
@@ -567,546 +463,586 @@ function toggleSelectMode() {
   renderPageList();
 }
 
-// ── Page List (with drag & drop reorder + thumbnail cache) ──
-let dragSrcIdx = null;
-const thumbCache = {};
-let thumbCacheKey = 0;
-
-function invalidateThumbs() { thumbCacheKey++; }
-
-function getThumbSrc(i) {
-  const key = `${thumbCacheKey}_${i}`;
-  if (thumbCache[key]) return thumbCache[key];
-  const src = `/api/page/${i}?zoom=0.5&t=${Date.now()}`;
-  thumbCache[key] = src;
-  return src;
-}
-
+// ── Page list (drag reorder) ──
 function renderPageList() {
   const list = $('#pageList'); list.innerHTML = '';
   for (let i = 0; i < S.pages; i++) {
     const item = document.createElement('div');
     item.className = 'page-item' + (i === S.cur ? ' active' : '');
-    item.draggable = true;
-    item.dataset.idx = i;
+    item.draggable = true; item.dataset.idx = i;
 
     const thumb = document.createElement('img');
-    thumb.className = 'page-thumb';
-    thumb.src = getThumbSrc(i);
-    thumb.alt = `ページ ${i + 1}`;
-    thumb.loading = 'lazy';
+    thumb.className = 'page-thumb'; thumb.src = thumbSrc(i);
+    thumb.alt = `ページ ${i + 1}`; thumb.loading = 'lazy';
 
     const label = document.createElement('span');
-    label.className = 'page-label';
-    label.textContent = `${i + 1}`;
+    label.className = 'page-label'; label.textContent = `${i + 1}`;
 
     const check = document.createElement('input');
-    check.type = 'checkbox';
-    check.className = 'page-check';
+    check.type = 'checkbox'; check.className = 'page-check';
     check.checked = selectedPages.has(i);
     check.onclick = e => {
       e.stopPropagation();
-      if (check.checked) { selectedPages.add(i); } else { selectedPages.delete(i); }
+      check.checked ? selectedPages.add(i) : selectedPages.delete(i);
       item.classList.toggle('selected', check.checked);
     };
 
-    item.appendChild(check);
-    item.appendChild(thumb);
-    item.appendChild(label);
+    item.appendChild(check); item.appendChild(thumb); item.appendChild(label);
     if (selectedPages.has(i)) item.classList.add('selected');
     item.onclick = () => {
       if (selectMode) {
         check.checked = !check.checked;
-        if (check.checked) { selectedPages.add(i); } else { selectedPages.delete(i); }
+        check.checked ? selectedPages.add(i) : selectedPages.delete(i);
         item.classList.toggle('selected', check.checked);
         return;
       }
-      S.cur = i; renderPageList(); renderPage();
+      S.cur = i; renderPageList(); renderPage(); if (S.panel === 'forms') refreshPanel();
     };
 
-    // ── Drag & Drop ──
-    item.addEventListener('dragstart', e => {
-      dragSrcIdx = i;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      // Need a tiny delay for the drag image to render properly
-      requestAnimationFrame(() => item.classList.add('dragging'));
-    });
-
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      clearAllDragStyles();
-    });
-
+    item.addEventListener('dragstart', e => { dragSrcIdx = i; item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    item.addEventListener('dragend', () => { item.classList.remove('dragging'); clearAllDragStyles(); });
     item.addEventListener('dragover', e => {
       e.preventDefault();
       if (dragSrcIdx === null || dragSrcIdx === i) return;
       e.dataTransfer.dropEffect = 'move';
       clearAllDragStyles();
-      // Show insertion indicator: above or below based on mouse position
       const rect = item.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (e.clientY < midY) {
-        item.classList.add('drag-over-top');
-      } else {
-        item.classList.add('drag-over-bottom');
-      }
+      item.classList.add(e.clientY < rect.top + rect.height / 2 ? 'drag-over-top' : 'drag-over-bottom');
     });
-
-    item.addEventListener('dragleave', () => {
-      item.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over-top', 'drag-over-bottom'));
     item.addEventListener('drop', async e => {
-      e.preventDefault();
-      clearAllDragStyles();
+      e.preventDefault(); clearAllDragStyles();
       const targetIdx = i;
       if (dragSrcIdx === null || dragSrcIdx === targetIdx) { dragSrcIdx = null; return; }
-
-      // Determine insert position based on mouse
       const rect = item.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      const insertBefore = e.clientY < midY;
-      const to = insertBefore ? targetIdx : targetIdx + 1;
-      // Adjust 'to' for PyMuPDF move_page (which accounts for removal)
-      const adjustedTo = dragSrcIdx < to ? to : to;
-
+      const insertBefore = e.clientY < rect.top + rect.height / 2;
+      const to = insertBefore ? targetIdx : targetIdx + 1;     // server clamps to==len -> end
+      const src = dragSrcIdx; dragSrcIdx = null;
       try {
-        await fetch('/api/move_page', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from: dragSrcIdx, to: adjustedTo })
-        });
-        // Calculate new current page
-        if (S.cur === dragSrcIdx) {
-          S.cur = adjustedTo > dragSrcIdx ? adjustedTo - 1 : adjustedTo;
-        } else if (dragSrcIdx < S.cur && adjustedTo > S.cur) {
-          S.cur--;
-        } else if (dragSrcIdx > S.cur && adjustedTo <= S.cur) {
-          S.cur++;
-        }
-        invalidateThumbs();
-        renderPageList(); renderPage(); enableUndoRedo();
-      } catch (err) { toast('移動に失敗しました', 'err'); }
-      dragSrcIdx = null;
+        const j = await api('/api/move_page', { from: src, to });
+        // recompute current page after the move
+        const landed = to > src ? to - 1 : to;
+        if (S.cur === src) S.cur = Math.max(0, Math.min(landed, S.pages - 1));
+        else if (src < S.cur && landed >= S.cur) S.cur--;
+        else if (src > S.cur && landed <= S.cur) S.cur++;
+        invalidateAllThumbs(); applyStatus(j); renderPageList(); renderPage();
+      } catch (err) { toast('移動に失敗しました: ' + err.message, 'err'); }
     });
-
     list.appendChild(item);
   }
 }
+function clearAllDragStyles() { $$('.page-item').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom')); }
 
-function clearAllDragStyles() {
-  $$('.page-item').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
-}
-
-// ── Page Render ──
+// ── Page render with overlay ──
 function renderPage() {
   const old = edArea.querySelector('.page-display');
   if (old) old.remove();
   if (S.pages === 0) return;
 
-  const wrap = document.createElement('div');
-  wrap.className = 'page-display';
-  const img = document.createElement('img');
-  img.className = 'page-canvas';
-  img.src = `/api/page/${S.cur}?zoom=${S.zoom}&t=${Date.now()}`;
-  img.addEventListener('mousedown', onCanvasMouseDown);
-  img.addEventListener('mousemove', onCanvasMouseMove);
-  img.addEventListener('mouseup', onCanvasMouseUp);
+  const wrap = document.createElement('div'); wrap.className = 'page-display';
+  const stage = document.createElement('div'); stage.className = 'page-stage'; stage.id = 'stage';
+  const img = document.createElement('img'); img.className = 'page-canvas'; img.id = 'pageImg';
+  img.src = `/api/page/${S.cur}?zoom=${S.zoom}&v=${thumbGen}_${thumbRev[S.cur] || 0}`;
   img.ondragstart = () => false;
-  wrap.appendChild(img);
-  edArea.appendChild(wrap);
+  const overlay = document.createElementNS(SVGNS, 'svg'); overlay.setAttribute('class', 'overlay'); overlay.id = 'overlay';
+  img.addEventListener('load', () => {
+    overlay.setAttribute('width', img.naturalWidth);
+    overlay.setAttribute('height', img.naturalHeight);
+    overlay.setAttribute('viewBox', `0 0 ${img.naturalWidth} ${img.naturalHeight}`);
+    drawSearchHits();
+  });
+  stage.appendChild(img); stage.appendChild(overlay);
+  stage.addEventListener('mousedown', onStageMouseDown);
+  stage.addEventListener('mousemove', onStageMouseMove);
+  wrap.appendChild(stage); edArea.appendChild(wrap);
+  applyToolCursor();
 }
 
 // ── Zoom ──
-function zoomIn() {
-  S.zoom = Math.min(6, S.zoom + 0.5);
-  $('#zoomLbl').textContent = Math.round(S.zoom / 2 * 100) + '%';
-  if (S.pages > 0) renderPage();
-}
-function zoomOut() {
-  S.zoom = Math.max(0.5, S.zoom - 0.5);
-  $('#zoomLbl').textContent = Math.round(S.zoom / 2 * 100) + '%';
-  if (S.pages > 0) renderPage();
-}
+function setZoomLabel() { $('#zoomLbl').textContent = Math.round(S.zoom / 2 * 100) + '%'; }
+function zoomIn() { S.zoom = Math.min(8, S.zoom + 0.5); setZoomLabel(); if (S.pages) renderPage(); }
+function zoomOut() { S.zoom = Math.max(0.5, S.zoom - 0.5); setZoomLabel(); if (S.pages) renderPage(); }
 
 // ── Undo / Redo ──
 async function doUndo() {
-  const r = await fetch('/api/undo', { method: 'POST' });
-  const j = await r.json();
-  if (j.ok) { S.pages = j.pages; S.cur = Math.min(S.cur, S.pages - 1); renderPageList(); renderPage(); }
+  try { const j = await api('/api/undo', {}); if (j.ok === false) return; afterStructural(j); toast('元に戻しました', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
 }
 async function doRedo() {
-  const r = await fetch('/api/redo', { method: 'POST' });
-  const j = await r.json();
-  if (j.ok) { S.pages = j.pages; S.cur = Math.min(S.cur, S.pages - 1); renderPageList(); renderPage(); }
+  try { const j = await api('/api/redo', {}); if (j.ok === false) return; afterStructural(j); toast('やり直しました', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
 }
-function enableUndoRedo() {
-  $('#btnUndo').disabled = false;
-  $('#btnRedo').disabled = false;
+// structural change: indices/counts may shift -> refresh everything
+function afterStructural(j) {
+  applyStatus(j);
+  S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
+  invalidateAllThumbs(); renderPageList(); renderPage();
+  if (S.panel) refreshPanel();
+}
+// content edit on the current page only
+function afterContentEdit(j) {
+  applyStatus(j); invalidateThumb(S.cur);
+  renderPageList(); renderPage();
 }
 
-// ── Text Edit (existing PDF text) ──
+// ── Text edit (existing PDF text) ──
 async function editTextMode() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  const r = await fetch(`/api/text/${S.cur}`);
-  const j = await r.json();
-  if (!j.spans || !j.spans.length) { toast('このページにテキストはありません', 'info'); return; }
-  showTextListModal(j.spans);
+  try {
+    const j = await api(`/api/text/${S.cur}`);
+    if (!j.spans || !j.spans.length) { toast('このページにテキストはありません', 'info'); return; }
+    showTextListModal(j.spans);
+  } catch (e) { toast(e.message, 'err'); }
 }
-
 function showTextListModal(spans) {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-header">
-      <h2>テキスト編集</h2>
-      <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
-    </div>
-    <div class="modal-subtitle">編集したいテキストの「編集」ボタンをクリックしてください</div>
-    <div class="modal-body" id="textListBody"></div>
-    <div class="modal-footer"><button onclick="this.closest('.modal-overlay').remove()">閉じる</button></div>
-  `;
-  overlay.appendChild(modal);
+  const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+  overlay.innerHTML = `<div class="modal">
+      <div class="modal-header"><h2>テキスト編集</h2><button class="modal-close">&times;</button></div>
+      <div class="modal-subtitle">編集したいテキストの「編集」ボタンをクリックしてください</div>
+      <div class="modal-body" id="textListBody"></div>
+      <div class="modal-footer"><button id="tlClose">閉じる</button></div>
+    </div>`;
   document.body.appendChild(overlay);
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
-  const body = modal.querySelector('#textListBody');
+  const close = () => overlay.remove();
+  overlay.querySelector('.modal-close').onclick = close;
+  overlay.querySelector('#tlClose').onclick = close;
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  const body = overlay.querySelector('#textListBody');
   spans.forEach(sp => {
-    const row = document.createElement('div');
-    row.className = 'text-row';
-    row.innerHTML = `
-      <span class="text-content">${escHtml(sp.text)}</span>
-      <span class="text-meta">${sp.size}pt</span>
-      <button class="text-edit-btn">編集</button>
-    `;
-    row.querySelector('.text-edit-btn').onclick = () => {
-      overlay.remove();
-      showTextEditDialog(sp);
-    };
+    const row = document.createElement('div'); row.className = 'text-row';
+    row.innerHTML = `<span class="text-content">${escHtml(sp.text)}</span><span class="text-meta">${sp.size}pt</span><button class="text-edit-btn">編集</button>`;
+    row.querySelector('.text-edit-btn').onclick = () => { close(); showTextEditDialog(sp); };
     body.appendChild(row);
   });
 }
-
 function showTextEditDialog(span) {
-  const overlay = document.createElement('div');
-  overlay.className = 'dialog-overlay';
-  overlay.innerHTML = `
-    <div class="dialog">
-      <h3>テキストを編集</h3>
-      <input type="text" id="dlgEditText" value="${escAttr(span.text)}">
-      <div class="dialog-row">
-        <label>サイズ:</label>
-        <input type="number" id="dlgEditSize" value="${span.size}" min="4" max="200" step="0.5">
-        <label>色:</label>
-        <input type="color" id="dlgEditColor" value="${span.color}">
-      </div>
-      <div class="dialog-actions">
-        <button class="btn-cancel" onclick="this.closest('.dialog-overlay').remove()">キャンセル</button>
-        <button class="btn-ok" id="dlgEditOk">変更</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  const input = overlay.querySelector('#dlgEditText');
-  input.focus(); input.select();
-
-  async function doEdit() {
-    const newText = overlay.querySelector('#dlgEditText').value;
-    const fontSize = parseFloat(overlay.querySelector('#dlgEditSize').value) || span.size;
-    const colorHex = overlay.querySelector('#dlgEditColor').value;
-    const color = hexToRgb01(colorHex);
-    overlay.remove();
-
-    if (newText === span.text) return;
-
-    try {
-      await fetch('/api/edit_text', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page: S.cur, bbox: span.bbox, new_text: newText, font_size: fontSize, color })
-      });
-      renderPage(); enableUndoRedo();
-      toast('テキストを変更しました', 'ok');
-    } catch (e) {
-      toast('テキスト編集に失敗しました', 'err');
-    }
-  }
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') doEdit();
-    if (e.key === 'Escape') overlay.remove();
-  });
-  overlay.querySelector('#dlgEditOk').onclick = doEdit;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  openDialog(`<h3>テキストを編集</h3>
+    <input type="text" id="dlgEditText" value="${escAttr(span.text)}">
+    <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgEditSize" value="${span.size}" min="4" max="200" step="0.5">
+      <label>色:</label><input type="color" id="dlgEditColor" value="${escAttr(span.color)}"></div>`,
+    async (root) => {
+      const newText = root.querySelector('#dlgEditText').value;
+      const fontSize = parseFloat(root.querySelector('#dlgEditSize').value) || span.size;
+      const color = hexToRgb01(root.querySelector('#dlgEditColor').value);
+      if (newText === span.text) return true;
+      try {
+        const j = await api('/api/edit_text', { page: S.cur, bbox: span.bbox, origin: span.origin, new_text: newText, font_size: fontSize, color });
+        afterContentEdit(j); toast('テキストを変更しました', 'ok');
+      } catch (e) { toast('テキスト編集に失敗: ' + e.message, 'err'); }
+      return true;
+    }, { okLabel: '変更', focus: '#dlgEditText', selectAll: true });
 }
 
-// ── Add Text ──
-function addTextMode() {
+// ── Tools ──
+const DRAG_TOOLS = ['rect', 'ellipse', 'line', 'highlight', 'underline', 'strikeout', 'arrow'];
+const MARKUP_TOOLS = ['highlight', 'underline', 'strikeout', 'ink', 'arrow', 'note'];
+const TOOL_LABELS = { addText: 'テキスト追加', addImage: '画像挿入', rect: '四角', ellipse: '楕円', line: '直線', highlight: 'ハイライト', underline: '下線', strikeout: '取り消し線', ink: 'フリーハンド', arrow: '矢印', note: 'コメント' };
+const DEFAULT_COLORS = { highlight: '#ffd400', underline: '#e11d48', strikeout: '#e11d48', ink: '#1e293b', arrow: '#e11d48', rect: '#1e293b', ellipse: '#1e293b', line: '#1e293b', note: '#fde047' };
+
+function setTool(tool) {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  showAddTextDialog();
-}
+  if (S.mode === tool) { clearTool(); return; }
+  S.mode = tool;
+  $$('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+  if (tool === 'addImage') { $('#imgInput').click(); }
 
-function showAddTextDialog() {
-  const overlay = document.createElement('div');
-  overlay.className = 'dialog-overlay';
-  overlay.innerHTML = `
-    <div class="dialog">
-      <h3>テキストを追加</h3>
-      <input type="text" id="dlgAddText" placeholder="テキストを入力...">
-      <div class="dialog-row">
-        <label>サイズ:</label>
-        <input type="number" id="dlgAddSize" value="14" min="4" max="200" step="0.5">
-        <label>色:</label>
-        <input type="color" id="dlgAddColor" value="#000000">
-      </div>
-      <div class="dialog-actions">
-        <button class="btn-cancel" onclick="this.closest('.dialog-overlay').remove()">キャンセル</button>
-        <button class="btn-ok" id="dlgAddOk">OK</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  overlay.querySelector('#dlgAddText').focus();
-
-  function go() {
-    const text = overlay.querySelector('#dlgAddText').value;
-    const size = parseFloat(overlay.querySelector('#dlgAddSize').value) || 14;
-    const color = hexToRgb01(overlay.querySelector('#dlgAddColor').value);
-    overlay.remove();
-    if (!text) return;
-    S.mode = { type: 'add_text', text, size, color };
-    toast('ページ上をクリックして配置してください', 'info');
+  // tool options bar
+  const opts = $('#toolOptions');
+  const showOpts = DRAG_TOOLS.includes(tool) || tool === 'ink' || tool === 'note';
+  opts.classList.toggle('show', showOpts);
+  $('#mainLayout').classList.toggle('has-options', showOpts);
+  if (showOpts) {
+    $('#toLabel').textContent = TOOL_LABELS[tool] || 'ツール';
+    if (DEFAULT_COLORS[tool]) { S.toolColor = DEFAULT_COLORS[tool]; $('#toColor').value = S.toolColor; }
+    const isShape = ['rect', 'ellipse'].includes(tool);
+    $('#toWidthWrap').style.display = (tool === 'note' || tool === 'highlight') ? 'none' : 'flex';
+    $('#toFillWrap').style.display = isShape ? 'flex' : 'none';
   }
-
-  overlay.querySelector('#dlgAddText').addEventListener('keydown', e => {
-    if (e.key === 'Enter') go();
-    if (e.key === 'Escape') overlay.remove();
-  });
-  overlay.querySelector('#dlgAddOk').onclick = go;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  applyToolCursor();
+  const hint = tool === 'note' ? 'ページ上をクリックしてコメントを配置' :
+               tool === 'ink' ? 'ページ上でドラッグして手書き' :
+               tool === 'addText' ? 'ページ上をクリックして配置' :
+               DRAG_TOOLS.includes(tool) ? 'ページ上でドラッグ' : '';
+  if (hint) toast(hint, 'info');
 }
-
-// ── Add Image ──
-function addImageMode() {
-  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  $('#imgInput').click();
+function clearTool() {
+  S.mode = null; S.draw = null;
+  $$('.tool').forEach(b => b.classList.remove('active'));
+  $('#toolOptions').classList.remove('show');
+  $('#mainLayout').classList.remove('has-options');
+  clearPreview(); applyToolCursor();
 }
+function applyToolCursor() {
+  const stage = $('#stage'); if (!stage) return;
+  stage.classList.remove('tool-draw', 'tool-text');
+  if (!S.mode) return;
+  if (S.mode === 'addText' || S.mode === 'note') stage.classList.add('tool-text');
+  else stage.classList.add('tool-draw');
+}
+// tool options listeners
+$('#toColor').addEventListener('input', e => S.toolColor = e.target.value);
+$('#toWidth').addEventListener('input', e => { S.toolWidth = +e.target.value; $('#toWidthVal').textContent = e.target.value; });
+$('#toFill').addEventListener('change', e => S.toolFill = e.target.checked);
+
+// ── Image insert ──
 $('#imgInput').addEventListener('change', e => {
-  if (e.target.files[0]) {
-    S.mode = { type: 'add_image', file: e.target.files[0] };
-    toast('ページ上をクリックして配置してください', 'info');
-  }
+  if (e.target.files[0]) { S.imgFile = e.target.files[0]; toast('ページ上をクリックして配置してください', 'info'); }
+  else { clearTool(); }
   e.target.value = '';
 });
 
-// ── Draw Shapes ──
-function setDrawMode(shape) {
-  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  // Toggle off if same shape
-  if (S.mode?.type === 'draw' && S.mode.shape === shape) {
-    S.mode = null;
-    $$('.tbtn').forEach(b => b.classList.remove('active'));
-    return;
-  }
-  S.mode = { type: 'draw', shape };
-  $$('.tbtn').forEach(b => b.classList.remove('active'));
-  const id = '#btn' + shape.charAt(0).toUpperCase() + shape.slice(1);
-  $(id)?.classList.add('active');
-  toast('ページ上でドラッグして描画', 'info');
+// ── Add text dialog ──
+function showAddTextDialog(x, y) {
+  openDialog(`<h3>テキストを追加</h3>
+    <input type="text" id="dlgAddText" placeholder="テキストを入力...">
+    <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgAddSize" value="14" min="4" max="200" step="0.5">
+      <label>色:</label><input type="color" id="dlgAddColor" value="#000000"></div>`,
+    async (root) => {
+      const text = root.querySelector('#dlgAddText').value;
+      const size = parseFloat(root.querySelector('#dlgAddSize').value) || 14;
+      const color = hexToRgb01(root.querySelector('#dlgAddColor').value);
+      if (!text) return true;
+      try { const j = await api('/api/add_text', { page: S.cur, x, y, text, size, color }); afterContentEdit(j); toast('テキストを追加しました', 'ok'); }
+      catch (e) { toast('テキスト追加に失敗: ' + e.message, 'err'); }
+      return true;
+    }, { okLabel: 'OK', focus: '#dlgAddText' });
+}
+// ── Note dialog ──
+function showNoteDialog(x, y) {
+  openDialog(`<h3>コメントを追加</h3><textarea id="dlgNote" placeholder="コメント内容..."></textarea>`,
+    async (root) => {
+      const text = root.querySelector('#dlgNote').value;
+      if (!text) return true;
+      try { const j = await api('/api/annot', { page: S.cur, kind: 'note', x, y, text, color: hexToRgb01(S.toolColor) }); afterContentEdit(j); toast('コメントを追加しました', 'ok'); }
+      catch (e) { toast(e.message, 'err'); }
+      return true;
+    }, { okLabel: '追加', focus: '#dlgNote' });
 }
 
-// ── Canvas Mouse Events ──
-function imgToCoord(img, e) {
-  const r = img.getBoundingClientRect();
+// ── Canvas interactions ──
+function stageCoord(e) {
+  const img = $('#pageImg'); const r = img.getBoundingClientRect();
   return { x: (e.clientX - r.left) / S.zoom, y: (e.clientY - r.top) / S.zoom };
 }
-
-async function onCanvasMouseDown(e) {
-  const img = e.target;
-  const p = imgToCoord(img, e);
-
-  if (S.mode?.type === 'add_text') {
-    try {
-      await fetch('/api/add_text', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page: S.cur, x: p.x, y: p.y, text: S.mode.text, size: S.mode.size, color: S.mode.color })
-      });
-      renderPage(); enableUndoRedo();
-      toast('テキストを追加しました', 'ok');
-    } catch (e) { toast('テキスト追加に失敗', 'err'); }
-    S.mode = null;
-    return;
-  }
-
-  if (S.mode?.type === 'add_image') {
-    const fd = new FormData();
-    fd.append('image', S.mode.file);
-    fd.append('page', S.cur);
+async function onStageMouseDown(e) {
+  if (!S.mode) return;
+  const p = stageCoord(e);
+  if (S.mode === 'addText') { clearTool(); showAddTextDialog(p.x, p.y); return; }
+  if (S.mode === 'note') { clearTool(); showNoteDialog(p.x, p.y); return; }
+  if (S.mode === 'addImage') {
+    if (!S.imgFile) return;
+    const fd = new FormData(); fd.append('image', S.imgFile); fd.append('page', S.cur);
     fd.append('x', p.x); fd.append('y', p.y); fd.append('w', 200);
-    try {
-      await fetch('/api/add_image', { method: 'POST', body: fd });
-      renderPage(); enableUndoRedo();
-      toast('画像を挿入しました', 'ok');
-    } catch (e) { toast('画像挿入に失敗', 'err'); }
-    S.mode = null;
+    try { const j = await api('/api/add_image', fd); afterContentEdit(j); toast('画像を挿入しました', 'ok'); }
+    catch (err) { toast('画像挿入に失敗: ' + err.message, 'err'); }
+    S.imgFile = null; clearTool(); return;
+  }
+  if (S.mode === 'ink') { S.draw = { points: [[p.x, p.y]] }; return; }
+  if (DRAG_TOOLS.includes(S.mode)) { S.draw = { start: p, cur: p }; }
+}
+function onStageMouseMove(e) {
+  if (!S.draw || !S.mode) return;
+  const p = stageCoord(e);
+  if (S.mode === 'ink') { S.draw.points.push([p.x, p.y]); drawInkPreview(); return; }
+  if (DRAG_TOOLS.includes(S.mode)) { S.draw.cur = p; drawShapePreview(); }
+}
+async function onStageMouseUp(e) {
+  if (!S.draw || !S.mode) return;
+  const draw = S.draw; S.draw = null; clearPreview();
+  if (S.mode === 'ink') {
+    if (draw.points.length < 2) return;
+    try { const j = await api('/api/annot', { page: S.cur, kind: 'ink', strokes: [draw.points], color: hexToRgb01(S.toolColor), width: S.toolWidth }); afterContentEdit(j); toast('手書きを追加しました', 'ok'); }
+    catch (err) { toast(err.message, 'err'); }
     return;
   }
-
-  if (S.mode?.type === 'draw') {
-    S.drawStart = p;
-  }
-}
-
-function onCanvasMouseMove(e) { /* reserved for future preview */ }
-
-async function onCanvasMouseUp(e) {
-  if (!S.drawStart || S.mode?.type !== 'draw') return;
-  const p = imgToCoord(e.target, e);
-  const s = S.drawStart; S.drawStart = null;
+  const s = draw.start, p = stageCoord(e);
   if (Math.abs(p.x - s.x) < 3 && Math.abs(p.y - s.y) < 3) return;
-
+  const box = { x0: Math.min(s.x, p.x), y0: Math.min(s.y, p.y), x1: Math.max(s.x, p.x), y1: Math.max(s.y, p.y) };
   try {
-    await fetch('/api/draw_shape', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        page: S.cur, type: S.mode.shape,
-        x0: Math.min(s.x, p.x), y0: Math.min(s.y, p.y),
-        x1: Math.max(s.x, p.x), y1: Math.max(s.y, p.y),
-        color: S.drawColor, width: S.drawWidth
-      })
-    });
-    renderPage(); enableUndoRedo();
-    toast('図形を追加しました', 'ok');
-  } catch (e) { toast('図形描画に失敗', 'err'); }
-
-  S.mode = null;
-  $$('.tbtn').forEach(b => b.classList.remove('active'));
+    let j;
+    if (['highlight', 'underline', 'strikeout'].includes(S.mode)) {
+      j = await api('/api/annot', { page: S.cur, kind: S.mode, ...box, color: hexToRgb01(S.toolColor) });
+    } else if (S.mode === 'arrow') {
+      j = await api('/api/annot', { page: S.cur, kind: 'arrow', x0: s.x, y0: s.y, x1: p.x, y1: p.y, color: hexToRgb01(S.toolColor), width: S.toolWidth });
+    } else if (S.mode === 'line') {
+      j = await api('/api/draw_shape', { page: S.cur, type: 'line', x0: s.x, y0: s.y, x1: p.x, y1: p.y, color: hexToRgb01(S.toolColor), width: S.toolWidth });
+    } else { // rect, ellipse
+      j = await api('/api/draw_shape', { page: S.cur, type: S.mode, ...box, color: hexToRgb01(S.toolColor), width: S.toolWidth, fill: S.toolFill ? hexToRgb01(S.toolColor) : null });
+    }
+    afterContentEdit(j); toast('追加しました', 'ok');
+  } catch (err) { toast('失敗しました: ' + err.message, 'err'); }
 }
 
-// ── Page Operations ──
+// ── Preview overlay ──
+function clearPreview() { const o = $('#overlay'); if (o) o.querySelectorAll('.prev').forEach(el => el.remove()); }
+function svgAdd(name, attrs) {
+  const o = $('#overlay'); if (!o) return null;
+  const el = document.createElementNS(SVGNS, name);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  el.classList.add('prev'); o.appendChild(el); return el;
+}
+function drawShapePreview() {
+  clearPreview();
+  const z = S.zoom, s = S.draw.start, c = S.draw.cur;
+  const col = S.toolColor;
+  const x0 = Math.min(s.x, c.x) * z, y0 = Math.min(s.y, c.y) * z, w = Math.abs(c.x - s.x) * z, h = Math.abs(c.y - s.y) * z;
+  if (S.mode === 'rect') svgAdd('rect', { x: x0, y: y0, width: w, height: h, fill: S.toolFill ? col : 'none', 'fill-opacity': .3, stroke: col, 'stroke-width': S.toolWidth });
+  else if (S.mode === 'ellipse') svgAdd('ellipse', { cx: x0 + w/2, cy: y0 + h/2, rx: w/2, ry: h/2, fill: S.toolFill ? col : 'none', 'fill-opacity': .3, stroke: col, 'stroke-width': S.toolWidth });
+  else if (S.mode === 'line' || S.mode === 'arrow') svgAdd('line', { x1: s.x*z, y1: s.y*z, x2: c.x*z, y2: c.y*z, stroke: col, 'stroke-width': S.toolWidth, 'stroke-linecap': 'round' });
+  else if (S.mode === 'highlight') svgAdd('rect', { x: x0, y: y0, width: w, height: h, fill: col, 'fill-opacity': .35 });
+  else if (S.mode === 'underline') svgAdd('line', { x1: x0, y1: y0 + h, x2: x0 + w, y2: y0 + h, stroke: col, 'stroke-width': 2 });
+  else if (S.mode === 'strikeout') svgAdd('line', { x1: x0, y1: y0 + h/2, x2: x0 + w, y2: y0 + h/2, stroke: col, 'stroke-width': 2 });
+}
+function drawInkPreview() {
+  clearPreview();
+  const z = S.zoom;
+  const pts = S.draw.points.map(p => `${p[0]*z},${p[1]*z}`).join(' ');
+  svgAdd('polyline', { points: pts, fill: 'none', stroke: S.toolColor, 'stroke-width': S.toolWidth, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+}
+
+// ── Page operations ──
 async function addPage() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  const r = await fetch('/api/add_page', { method: 'POST' });
-  const j = await r.json();
-  if (j.ok) { S.pages = j.pages; S.cur = S.pages - 1; invalidateThumbs(); renderPageList(); renderPage(); enableUndoRedo(); }
+  try { const j = await api('/api/add_page', {}); S.cur = S.pages; afterStructural(j); toast('ページを追加しました', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
 }
-
 async function deletePage() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
   if (S.pages <= 1) { toast('最後のページは削除できません', 'err'); return; }
-
-  // Multiple selection mode
   if (selectMode && selectedPages.size > 0) {
     const pages = [...selectedPages].sort((a, b) => a - b);
     if (pages.length >= S.pages) { toast('すべてのページは削除できません', 'err'); return; }
-    const label = pages.map(p => p + 1).join(', ');
-    showConfirmDialog(`ページ ${label} を削除しますか？（${pages.length}ページ）`, async () => {
-      await fetch('/api/delete_pages', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pages })
-      });
-      S.pages -= pages.length;
-      S.cur = Math.min(S.cur, S.pages - 1);
-      selectedPages.clear();
-      invalidateThumbs(); renderPageList(); renderPage(); enableUndoRedo();
-      toast(`${pages.length}ページを削除しました`, 'ok');
+    confirmDialog(`ページ ${pages.map(p => p + 1).join(', ')} を削除しますか？（${pages.length}ページ）`, async () => {
+      try {
+        const belowCur = pages.filter(p => p < S.cur).length;
+        const j = await api('/api/delete_pages', { pages });
+        applyStatus(j);
+        S.cur = Math.max(0, Math.min(S.cur - belowCur, S.pages - 1));
+        selectedPages.clear(); invalidateAllThumbs(); renderPageList(); renderPage();
+        if (S.panel) refreshPanel();
+        toast(`${pages.length}ページを削除しました`, 'ok');
+      } catch (e) { toast(e.message, 'err'); }
     });
     return;
   }
-
-  // Single page delete
-  showConfirmDialog(`ページ ${S.cur + 1} を削除しますか？`, async () => {
-    await fetch('/api/delete_page', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ page: S.cur })
-    });
-    S.pages--; S.cur = Math.min(S.cur, S.pages - 1);
-    invalidateThumbs(); renderPageList(); renderPage(); enableUndoRedo();
-    toast('ページを削除しました', 'ok');
+  confirmDialog(`ページ ${S.cur + 1} を削除しますか？`, async () => {
+    try {
+      const removed = S.cur;
+      const j = await api('/api/delete_page', { page: S.cur });
+      applyStatus(j);
+      if (S.cur > removed - 1 && S.cur > 0) S.cur = Math.min(S.cur, S.pages - 1);
+      S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
+      invalidateAllThumbs(); renderPageList(); renderPage();
+      if (S.panel) refreshPanel();
+      toast('ページを削除しました', 'ok');
+    } catch (e) { toast(e.message, 'err'); }
   });
 }
-
-function showConfirmDialog(message, onOk) {
-  const overlay = document.createElement('div');
-  overlay.className = 'dialog-overlay';
-  overlay.innerHTML = `
-    <div class="dialog">
-      <h3>${escHtml(message)}</h3>
-      <div class="dialog-actions">
-        <button class="btn-cancel" id="cfmNo">キャンセル</button>
-        <button class="btn-ok" id="cfmYes" style="background:var(--red)">削除</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  overlay.querySelector('#cfmNo').onclick = () => overlay.remove();
-  overlay.querySelector('#cfmYes').onclick = () => { overlay.remove(); onOk(); };
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-}
-
 async function movePage(dir) {
   if (S.pages <= 1) return;
   const from = S.cur;
   if (dir < 0 && from <= 0) return;
   if (dir > 0 && from >= S.pages - 1) return;
-  const to = dir < 0 ? from - 1 : from + 2;
+  const to = dir < 0 ? from - 1 : from + 2;  // server clamps; +2 = "after next"
   try {
-    await fetch('/api/move_page', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to })
-    });
-    S.cur += dir;
-    invalidateThumbs(); renderPageList(); renderPage(); enableUndoRedo();
+    const j = await api('/api/move_page', { from, to });
+    S.cur = Math.max(0, Math.min(from + dir, S.pages - 1));
+    invalidateAllThumbs(); applyStatus(j); renderPageList(); renderPage();
     toast(`ページ ${from + 1} → ${S.cur + 1}`, 'ok');
-  } catch (e) { toast('移動に失敗しました', 'err'); }
+  } catch (e) { toast('移動に失敗: ' + e.message, 'err'); }
+}
+async function rotateCurrent() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  const pages = (selectMode && selectedPages.size > 0) ? [...selectedPages] : [S.cur];
+  try { const j = await api('/api/rotate', { pages, dir: 1 }); applyStatus(j); invalidateAllThumbs(); renderPageList(); renderPage(); toast('回転しました', 'ok'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+async function importPdf() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  if (!hasNative()) { toast('この機能はデスクトップ版でのみ利用できます', 'info'); return; }
+  const path = await window.pywebview.api.pick_pdf();
+  if (!path) return;
+  try { const j = await api('/api/import_pdf', { path, at: S.cur }); afterStructural(j); toast('PDFを挿入しました', 'ok'); }
+  catch (e) { toast('挿入に失敗: ' + e.message, 'err'); }
+}
+async function extractPages() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  if (!selectMode || selectedPages.size === 0) { toast('選択モードでページを選んでください', 'info'); return; }
+  if (!hasNative()) { toast('この機能はデスクトップ版でのみ利用できます', 'info'); return; }
+  const path = await window.pywebview.api.pick_save('extracted.pdf');
+  if (!path) return;
+  try { const j = await api('/api/extract', { pages: [...selectedPages], path }); toast(`${j.count}ページを書き出しました`, 'ok'); }
+  catch (e) { toast('書き出しに失敗: ' + e.message, 'err'); }
 }
 
-function download() { window.location = '/api/download'; }
-
-function saveAs() {
-  const overlay = document.createElement('div');
-  overlay.className = 'dialog-overlay';
-  const currentName = S.filename || 'edited.pdf';
-  const baseName = currentName.replace(/\.pdf$/i, '');
-  overlay.innerHTML = `
-    <div class="dialog">
-      <h3>名前を付けて保存</h3>
-      <input type="text" id="dlgSaveName" value="${escAttr(baseName)}" placeholder="ファイル名">
-      <div style="font-size:11px;color:var(--txt3);margin-top:-4px;margin-bottom:12px">.pdf は自動で付きます</div>
-      <div class="dialog-actions">
-        <button class="btn-cancel" onclick="this.closest('.dialog-overlay').remove()">キャンセル</button>
-        <button class="btn-ok" id="dlgSaveOk">保存</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  const input = overlay.querySelector('#dlgSaveName');
-  input.focus(); input.select();
-
-  function doSave() {
-    let name = input.value.trim();
-    if (!name) { toast('ファイル名を入力してください', 'err'); return; }
-    if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
-    overlay.remove();
-    window.location = `/api/download?name=${encodeURIComponent(name)}`;
+// ── Save ──
+function defaultName() { const n = S.filename || 'edited.pdf'; return n.toLowerCase().endsWith('.pdf') ? n : n + '.pdf'; }
+async function save() {
+  if (S.pages === 0) return;
+  if (S.hasPath) {
+    try { const j = await api('/api/save', {}); applyStatus(j); toast('保存しました', 'ok'); }
+    catch (e) { toast('保存に失敗: ' + e.message, 'err'); }
+  } else { saveAs(); }
+}
+async function saveAs() {
+  if (S.pages === 0) return;
+  if (hasNative()) {
+    const path = await window.pywebview.api.pick_save(defaultName());
+    if (!path) return;
+    try { const j = await api('/api/save', { path }); applyStatus(j); toast('保存しました', 'ok'); }
+    catch (e) { toast('保存に失敗: ' + e.message, 'err'); }
+  } else {
+    // browser fallback: download
+    showSaveNameDialog();
   }
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') doSave();
-    if (e.key === 'Escape') overlay.remove();
-  });
-  overlay.querySelector('#dlgSaveOk').onclick = doSave;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+function showSaveNameDialog() {
+  const base = (S.filename || 'edited').replace(/\.pdf$/i, '');
+  openDialog(`<h3>名前を付けて保存</h3>
+    <input type="text" id="dlgSaveName" value="${escAttr(base)}" placeholder="ファイル名">
+    <div style="font-size:11px;color:var(--txt3);margin-top:-4px;margin-bottom:12px">.pdf は自動で付きます</div>`,
+    (root) => {
+      let name = root.querySelector('#dlgSaveName').value.trim();
+      if (!name) { toast('ファイル名を入力してください', 'err'); return false; }
+      if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
+      window.location = `/api/download?name=${encodeURIComponent(name)}`;
+      return true;
+    }, { okLabel: '保存', focus: '#dlgSaveName', selectAll: true });
 }
 
-// ── Keyboard Shortcuts ──
+// ── Right panel (search / forms) ──
+function togglePanel(which) {
+  S.panel = (S.panel === which) ? null : which;
+  $('#rightPanel').classList.toggle('show', !!S.panel);
+  $('#btnSearch').classList.toggle('active', S.panel === 'search');
+  $('#btnForms').classList.toggle('active', S.panel === 'forms');
+  if (S.panel) { $('#rpTitle').textContent = S.panel === 'search' ? '検索' : 'フォーム入力'; refreshPanel(); }
+}
+function refreshPanel() {
+  if (S.panel === 'search') renderSearchPanel();
+  else if (S.panel === 'forms') renderFormsPanel();
+}
+function renderSearchPanel() {
+  const body = $('#rpBody');
+  body.innerHTML = `<div class="rp-search-input"><input type="text" id="searchQ" placeholder="検索語..." value="${escAttr(S.search.q)}"><button id="searchGo">検索</button></div><div class="rp-count" id="searchCount"></div><div id="searchResults"></div>`;
+  const input = body.querySelector('#searchQ');
+  const run = () => doSearch(input.value);
+  body.querySelector('#searchGo').onclick = run;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  input.focus();
+  renderSearchResults();
+}
+async function doSearch(q) {
+  q = (q || '').trim(); S.search.q = q;
+  if (!q) { S.search.results = []; S.search.idx = -1; renderSearchResults(); drawSearchHits(); return; }
+  try {
+    const j = await api(`/api/search?q=${encodeURIComponent(q)}`);
+    S.search.results = j.results; S.search.idx = j.results.length ? 0 : -1;
+    if (j.results.length) gotoSearchHit(0);
+    renderSearchResults(); drawSearchHits();
+  } catch (e) { toast(e.message, 'err'); }
+}
+function renderSearchResults() {
+  const cnt = $('#searchCount'), box = $('#searchResults');
+  if (!box) return;
+  cnt.textContent = S.search.q ? `${S.search.results.length} 件` : '';
+  box.innerHTML = '';
+  S.search.results.forEach((r, i) => {
+    const el = document.createElement('div');
+    el.className = 'search-result' + (i === S.search.idx ? ' active' : '');
+    el.innerHTML = `<span class="pg">P${r.page + 1}</span><span>位置 ${Math.round(r.rect[1])}</span>`;
+    el.onclick = () => { S.search.idx = i; gotoSearchHit(i); renderSearchResults(); };
+    box.appendChild(el);
+  });
+}
+function gotoSearchHit(i) {
+  const r = S.search.results[i]; if (!r) return;
+  if (r.page !== S.cur) { S.cur = r.page; renderPageList(); renderPage(); }
+  else drawSearchHits();
+}
+function drawSearchHits() {
+  const o = $('#overlay'); if (!o) return;
+  o.querySelectorAll('.search-hit').forEach(el => el.remove());
+  if (S.panel !== 'search') return;
+  const z = S.zoom;
+  S.search.results.forEach((r, i) => {
+    if (r.page !== S.cur) return;
+    const rc = document.createElementNS(SVGNS, 'rect');
+    rc.setAttribute('class', 'search-hit' + (i === S.search.idx ? ' current' : ''));
+    rc.setAttribute('x', r.rect[0]*z); rc.setAttribute('y', r.rect[1]*z);
+    rc.setAttribute('width', (r.rect[2]-r.rect[0])*z); rc.setAttribute('height', (r.rect[3]-r.rect[1])*z);
+    o.appendChild(rc);
+  });
+}
+async function renderFormsPanel() {
+  const body = $('#rpBody');
+  if (S.pages === 0) { body.innerHTML = `<div class="rp-empty">PDFを開いてください</div>`; return; }
+  try {
+    const j = await api(`/api/widgets/${S.cur}`);
+    if (!j.widgets.length) { body.innerHTML = `<div class="rp-empty">このページにフォームフィールドはありません</div>`; return; }
+    body.innerHTML = `<div class="rp-count">${j.widgets.length} フィールド（ページ ${S.cur + 1}）</div>` + j.widgets.map((w, i) => {
+      const label = escHtml(w.name || `フィールド ${i + 1}`);
+      let ctrl;
+      if (w.options) ctrl = `<select data-name="${escAttr(w.name)}">${w.options.map(o => `<option ${o === w.value ? 'selected' : ''}>${escHtml(o)}</option>`).join('')}</select>`;
+      else if (w.type && w.type.toLowerCase().includes('checkbox')) ctrl = `<select data-name="${escAttr(w.name)}"><option ${!w.value || w.value === 'Off' ? 'selected' : ''} value="Off">オフ</option><option ${w.value && w.value !== 'Off' ? 'selected' : ''} value="On">オン</option></select>`;
+      else ctrl = `<input type="text" data-name="${escAttr(w.name)}" value="${escAttr(w.value || '')}">`;
+      return `<div class="form-field"><label>${label}<span class="ftype">${escHtml(w.type || '')}</span></label>${ctrl}</div>`;
+    }).join('');
+    body.querySelectorAll('[data-name]').forEach(el => {
+      el.addEventListener('change', async () => {
+        try { const j = await api('/api/set_widget', { page: S.cur, name: el.dataset.name, value: el.value }); afterContentEdit(j); }
+        catch (e) { toast(e.message, 'err'); }
+      });
+    });
+  } catch (e) { body.innerHTML = `<div class="rp-empty">${escHtml(e.message)}</div>`; }
+}
+
+// ── Generic dialog/confirm helpers ──
+function openDialog(innerHtml, onOk, opts = {}) {
+  const overlay = document.createElement('div'); overlay.className = 'dialog-overlay';
+  overlay.innerHTML = `<div class="dialog">${innerHtml}
+    <div class="dialog-actions"><button class="btn-cancel">キャンセル</button><button class="btn-ok">${opts.okLabel || 'OK'}</button></div></div>`;
+  document.body.appendChild(overlay);
+  const root = overlay.querySelector('.dialog');
+  const close = () => overlay.remove();
+  const ok = async () => { const keep = await onOk(root); if (keep !== false) close(); };
+  overlay.querySelector('.btn-cancel').onclick = close;
+  overlay.querySelector('.btn-ok').onclick = ok;
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  root.addEventListener('keydown', e => {
+    if (e.key === 'Escape') close();
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); ok(); }
+  });
+  if (opts.focus) { const f = root.querySelector(opts.focus); if (f) { f.focus(); if (opts.selectAll && f.select) f.select(); } }
+}
+function confirmDialog(message, onOk) {
+  const overlay = document.createElement('div'); overlay.className = 'dialog-overlay';
+  overlay.innerHTML = `<div class="dialog"><h3>${escHtml(message)}</h3>
+    <div class="dialog-actions"><button class="btn-cancel" id="cfmNo">キャンセル</button><button class="btn-ok" id="cfmYes" style="background:var(--red)">削除</button></div></div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('#cfmNo').onclick = close;
+  overlay.querySelector('#cfmYes').onclick = () => { close(); onOk(); };
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('.dialog').addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  overlay.querySelector('#cfmYes').focus();
+}
+
+// ── Keyboard shortcuts ──
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const typing = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
   const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); save(); return; }
+  if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); if (S.panel !== 'search') togglePanel('search'); else $('#searchQ')?.focus(); return; }
+  if (typing) return;
   if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
-  if (mod && (e.key === 'y' || (e.shiftKey && e.key === 'Z') || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); doRedo(); }
-  if (e.key === 'Escape') { S.mode = null; $$('.tbtn').forEach(b => b.classList.remove('active')); }
+  else if (mod && (e.key === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); doRedo(); }
+  else if (e.key === 'Escape') { clearTool(); }
 });
+
+// global mouse-up so a drag that ends outside the canvas still commits (attached once)
+window.addEventListener('mouseup', onStageMouseUp);
+setZoomLabel();
 </script>
 </body>
 </html>
