@@ -436,6 +436,49 @@ def add_annot():
     return status()
 
 
+_ANNOT_LABELS = {
+    "Highlight": "ハイライト", "Underline": "下線", "StrikeOut": "取り消し線",
+    "Ink": "フリーハンド", "Line": "直線/矢印", "Text": "コメント",
+    "Square": "四角", "Circle": "楕円", "FreeText": "テキスト",
+}
+
+
+@api("/api/annots/<int:idx>")
+def list_annots(idx):
+    """List deletable markup annotations on a page (display-space rects)."""
+    doc, page = require_page(idx)
+    rmat = page.rotation_matrix
+    out = []
+    for a in page.annots():
+        kind = a.type[1] if a.type else ""
+        if kind in ("Widget", "Popup", "Link"):  # not user markup
+            continue
+        dr = a.rect * rmat
+        dr.normalize()
+        out.append({
+            "xref": a.xref,
+            "type": _ANNOT_LABELS.get(kind, kind or "注釈"),
+            "rect": [dr.x0, dr.y0, dr.x1, dr.y1],
+        })
+    return jsonify(annots=out)
+
+
+@api("/api/delete_annot", methods=["POST"])
+def delete_annot():
+    d = request.get_json(silent=True) or {}
+    idx = d.get("page")
+    xref = d.get("xref")
+    if idx is None or xref is None:
+        raise ApiError("不正なリクエストです")
+    doc, page = require_page(idx)
+    target = next((a for a in page.annots() if a.xref == xref), None)
+    if target is None:
+        raise ApiError("注釈が見つかりません", 404)
+    push_undo()
+    page.delete_annot(target)
+    return status()
+
+
 # ── Page organisation ──
 @api("/api/add_page", methods=["POST"])
 def add_page():
