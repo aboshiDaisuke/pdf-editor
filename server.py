@@ -49,13 +49,22 @@ def _resolve_font():
 JP_FONT_FILE = _resolve_font()
 
 
-def insert_text(page, point, text, size, color):
-    """Insert text with the embedded Unicode font when available."""
+def insert_text(page, point, text, size, color, rotate=0):
+    """Insert text with the embedded Unicode font, upright on rotated pages.
+
+    Never silently writes Japanese with a non-embedded font (which renders as
+    tofu in other viewers): if no embeddable Unicode font was found we fall back
+    to a built-in for pure-ASCII text and raise a clear error otherwise.
+    """
     if JP_FONT_FILE:
         page.insert_text(point, text, fontsize=size, fontname=JP_ALIAS,
-                         fontfile=JP_FONT_FILE, color=color)
-    else:  # graceful fallback (non-embedded CID font)
-        page.insert_text(point, text, fontsize=size, fontname="japan", color=color)
+                         fontfile=JP_FONT_FILE, color=color, rotate=rotate)
+    elif text.isascii():
+        page.insert_text(point, text, fontsize=size, fontname="helv",
+                         color=color, rotate=rotate)
+    else:
+        raise ApiError("日本語を埋め込めるフォントが見つかりません。"
+                       "NotoSansJP-Regular.ttf をアプリのフォルダに置いて再起動してください。")
 
 
 # ── Shared state (guarded by LOCK) ──
@@ -90,13 +99,20 @@ def require_page(idx):
     return doc, doc[idx]
 
 
+UNDO_MAX_COUNT = 30
+UNDO_MAX_BYTES = 300 * 1024 * 1024  # cap total snapshot memory (large PDFs)
+
+
 def push_undo():
-    """Snapshot the document for undo. Correct and simple; O(doc size) per edit."""
+    """Snapshot the document for undo, bounded by count AND total bytes so a
+    large PDF can't blow up memory with 30 full copies."""
     if not state["doc"]:
         return
-    state["undo_stack"].append(state["doc"].tobytes())
-    if len(state["undo_stack"]) > 30:
-        state["undo_stack"].pop(0)
+    stack = state["undo_stack"]
+    stack.append(state["doc"].tobytes())
+    total = sum(len(s) for s in stack)
+    while len(stack) > 1 and (len(stack) > UNDO_MAX_COUNT or total > UNDO_MAX_BYTES):
+        total -= len(stack.pop(0))
     state["redo_stack"].clear()
     state["dirty"] = True
 
@@ -140,6 +156,38 @@ def rgb(color, default=(0, 0, 0)):
     return tuple(float(c) for c in color[:3])
 
 
+# ── Rotation-aware coordinates ──────────────────────────────────────────────
+# The page is rendered WITH its rotation baked into the pixmap, so the client
+# works in "display" space. All PyMuPDF insert/draw/redact methods operate in
+# the page's own (unrotated) space. These helpers convert between the two so
+# every tool lands correctly on rotated pages.
+def _page_pt(page, x, y):
+    """Display-space point -> page (unrotated) coordinate system."""
+    return pymupdf.Point(float(x), float(y)) * page.derotation_matrix
+
+
+def _page_rect(page, x0, y0, x1, y1):
+    return pymupdf.Rect(_page_pt(page, x0, y0), _page_pt(page, x1, y1)).normalize()
+
+
+def _pt_pair(page, p):
+    """A display-space [x, y] -> page-space float pair (for add_ink_annot)."""
+    q = _page_pt(page, p[0], p[1])
+    return (float(q.x), float(q.y))
+
+
+def _upright(page):
+    """rotate= value that makes inserted text read upright on a rotated page."""
+    return (360 - page.rotation) % 360
+
+
+def _require_coords(d, *keys):
+    for k in keys:
+        if k not in d:
+            raise ApiError("座標が不足しています")
+    return [float(d[k]) for k in keys]
+
+
 # ── Static ──
 @app.route("/")
 def index():
@@ -148,6 +196,8 @@ def index():
 
 # ── Open / state ──
 def _load_stream(data, filename, real_path=None):
+    if b"%PDF-" not in data[:1024]:
+        raise ApiError("PDFファイルではないようです（対応形式は PDF のみ）")
     state["doc"] = pymupdf.open(stream=data, filetype="pdf")
     state["filename"] = filename
     state["filepath_real"] = real_path
@@ -178,11 +228,6 @@ def open_path():
     return status()
 
 
-@api("/api/state")
-def get_state():
-    return status()
-
-
 # ── Render ──
 @api("/api/page/<int:idx>")
 def get_page(idx):
@@ -195,17 +240,11 @@ def get_page(idx):
     return send_file(buf, mimetype="image/png")
 
 
-@api("/api/page_size/<int:idx>")
-def page_size(idx):
-    doc, page = require_page(idx)
-    r = page.rect
-    return jsonify(width=r.width, height=r.height, rotation=page.rotation)
-
-
-# ── Text extraction (for the text-edit list) ──
+# ── Text extraction (for the text-edit list / click-to-edit) ──
 @api("/api/text/<int:idx>")
 def get_text(idx):
     doc, page = require_page(idx)
+    rmat = page.rotation_matrix
     spans = []
     for b in page.get_text("dict")["blocks"]:
         if b.get("type") != 0:
@@ -219,36 +258,19 @@ def get_text(idx):
                     hexc = f"#{(c >> 16) & 0xFF:02x}{(c >> 8) & 0xFF:02x}{c & 0xFF:02x}"
                 else:
                     hexc = "#000000"
+                # dbox = display-space bbox (rotation applied) for client hit-testing.
+                dbox = (pymupdf.Rect(sp["bbox"]) * rmat)
+                dbox.normalize()
                 spans.append({
                     "text": sp["text"],
                     "size": round(sp["size"], 1),
                     "font": sp.get("font", ""),
                     "color": hexc,
-                    "bbox": list(sp["bbox"]),
+                    "bbox": list(sp["bbox"]),        # page space (for editing)
+                    "dbox": [dbox.x0, dbox.y0, dbox.x1, dbox.y1],  # display space
                     "origin": list(sp.get("origin", (sp["bbox"][0], sp["bbox"][3]))),
                 })
     return jsonify(spans=spans)
-
-
-def _bg_color(page, rect):
-    """Average the border ring just outside the text so the erase blends in."""
-    clip = rect + (-3, -3, 3, 3)
-    pix = page.get_pixmap(clip=clip, alpha=False)
-    w, h = pix.width, pix.height
-    if w < 2 or h < 2:
-        r, g, b = pix.pixel(0, 0)
-        return (r / 255, g / 255, b / 255)
-    samples = []
-    for x in range(w):
-        samples.append(pix.pixel(x, 0))
-        samples.append(pix.pixel(x, h - 1))
-    for y in range(h):
-        samples.append(pix.pixel(0, y))
-        samples.append(pix.pixel(w - 1, y))
-    n = len(samples)
-    return (sum(s[0] for s in samples) / n / 255,
-            sum(s[1] for s in samples) / n / 255,
-            sum(s[2] for s in samples) / n / 255)
 
 
 @api("/api/edit_text", methods=["POST"])
@@ -258,20 +280,23 @@ def edit_text():
     if idx is None or "bbox" not in d or "new_text" not in d:
         raise ApiError("不正なリクエストです")
     doc, page = require_page(idx)
-    bbox = d["bbox"]
+    bbox = d["bbox"]  # page space (from /api/text)
     new_text = d["new_text"]
     font_size = float(d.get("font_size", 12))
     color = rgb(d.get("color"))
 
     push_undo()
     rect = pymupdf.Rect(bbox)
-    # Erase the original text by filling with the surrounding background colour.
-    page.add_redact_annot(rect, fill=_bg_color(page, rect))
-    page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_NONE)
+    # Remove ONLY the original glyphs, preserving any background image / vector
+    # art underneath (fill=False = don't paint a box; images/graphics kept).
+    page.add_redact_annot(rect, fill=False)
+    page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_NONE,
+                          graphics=pymupdf.PDF_REDACT_LINE_ART_NONE)
 
-    # Re-insert at the original baseline (origin) so the position is preserved.
+    # Re-insert at the original baseline (origin), upright on rotated pages.
     origin = d.get("origin") or [rect.x0, rect.y1]
-    insert_text(page, pymupdf.Point(origin[0], origin[1]), new_text, font_size, color)
+    insert_text(page, pymupdf.Point(origin[0], origin[1]), new_text,
+                font_size, color, rotate=_upright(page))
     return status()
 
 
@@ -285,9 +310,10 @@ def add_text():
     doc, page = require_page(idx)
     size = float(d.get("size", 14))
     push_undo()
-    # Treat the click point as the visual top-left: drop the baseline by the size.
-    insert_text(page, pymupdf.Point(d.get("x", 50), d.get("y", 50) + size),
-                text, size, rgb(d.get("color")))
+    # Click point is the visual top-left (display space): drop to the baseline,
+    # then map to page space so it lands correctly on rotated pages.
+    pt = _page_pt(page, d.get("x", 50), d.get("y", 50) + size)
+    insert_text(page, pt, text, size, rgb(d.get("color")), rotate=_upright(page))
     return status()
 
 
@@ -325,7 +351,7 @@ def add_image():
         raise ApiError("画像を読み込めませんでした（対応していない形式の可能性があります）")
     push_undo()
     h = w * ih / iw
-    page.insert_image(pymupdf.Rect(x, y, x + w, y + h), stream=stream)
+    page.insert_image(_page_rect(page, x, y, x + w, y + h), stream=stream)
     return status()
 
 
@@ -335,22 +361,23 @@ def draw_shape():
     d = request.get_json(silent=True) or {}
     idx = d.get("page")
     shape = d.get("type")
-    if idx is None or shape is None or "x0" not in d:
+    if idx is None or shape is None:
         raise ApiError("不正なリクエストです")
     doc, page = require_page(idx)
+    x0, y0, x1, y1 = _require_coords(d, "x0", "y0", "x1", "y1")
     color = rgb(d.get("color"))
     width = float(d.get("width", 2))
     fill = rgb(d["fill"]) if d.get("fill") else None
     push_undo()
     if shape == "rect":
-        page.draw_rect(pymupdf.Rect(d["x0"], d["y0"], d["x1"], d["y1"]),
+        page.draw_rect(_page_rect(page, x0, y0, x1, y1),
                        color=color, fill=fill, width=width)
     elif shape == "ellipse":
-        page.draw_oval(pymupdf.Rect(d["x0"], d["y0"], d["x1"], d["y1"]),
+        page.draw_oval(_page_rect(page, x0, y0, x1, y1),
                        color=color, fill=fill, width=width)
     elif shape == "line":
-        page.draw_line(pymupdf.Point(d["x0"], d["y0"]),
-                       pymupdf.Point(d["x1"], d["y1"]), color=color, width=width)
+        page.draw_line(_page_pt(page, x0, y0), _page_pt(page, x1, y1),
+                       color=color, width=width)
     else:
         raise ApiError("不明な図形です")
     return status()
@@ -370,7 +397,8 @@ def add_annot():
     push_undo()
 
     if kind in ("highlight", "underline", "strikeout"):
-        rect = pymupdf.Rect(d["x0"], d["y0"], d["x1"], d["y1"])
+        x0, y0, x1, y1 = _require_coords(d, "x0", "y0", "x1", "y1")
+        rect = _page_rect(page, x0, y0, x1, y1)
         # Prefer real text quads so the markup hugs the glyphs (true Acrobat behaviour).
         quads = [pymupdf.Rect(w[:4]).quad for w in page.get_text("words")
                  if pymupdf.Rect(w[:4]).intersects(rect)]
@@ -382,8 +410,8 @@ def add_annot():
         annot.set_colors(stroke=color)
         annot.update()
     elif kind == "ink":
-        strokes = d.get("strokes") or []
-        strokes = [[(float(p[0]), float(p[1])) for p in s] for s in strokes if len(s) > 1]
+        raw = d.get("strokes") or []
+        strokes = [[_pt_pair(page, p) for p in s] for s in raw if len(s) > 1]
         if not strokes:
             raise ApiError("描画データがありません")
         annot = page.add_ink_annot(strokes)
@@ -391,16 +419,16 @@ def add_annot():
         annot.set_border(width=width)
         annot.update()
     elif kind in ("arrow", "line"):
-        annot = page.add_line_annot(pymupdf.Point(d["x0"], d["y0"]),
-                                    pymupdf.Point(d["x1"], d["y1"]))
+        x0, y0, x1, y1 = _require_coords(d, "x0", "y0", "x1", "y1")
+        annot = page.add_line_annot(_page_pt(page, x0, y0), _page_pt(page, x1, y1))
         if kind == "arrow":
             annot.set_line_ends(pymupdf.PDF_ANNOT_LE_NONE, pymupdf.PDF_ANNOT_LE_OPEN_ARROW)
         annot.set_colors(stroke=rgb(d.get("color"), default=(0.9, 0.1, 0.1)))
         annot.set_border(width=width)
         annot.update()
     elif kind == "note":
-        annot = page.add_text_annot(pymupdf.Point(d.get("x", 50), d.get("y", 50)),
-                                    d.get("text", ""))
+        pt = _page_pt(page, d.get("x", 50), d.get("y", 50))
+        annot = page.add_text_annot(pt, d.get("text", ""))
         annot.set_colors(stroke=rgb(d.get("color"), default=(1, 0.9, 0.2)))
         annot.update()
     else:
@@ -473,7 +501,9 @@ def rotate_pages():
     d = request.get_json(silent=True) or {}
     step = 90 if int(d.get("dir", 1)) >= 0 else -90
     pages = d.get("pages")
-    targets = [p for p in pages if 0 <= p < len(doc)] if pages else range(len(doc))
+    # `pages` absent -> whole document; an empty list rotates NOTHING (not all).
+    targets = (range(len(doc)) if pages is None
+               else [p for p in pages if 0 <= p < len(doc)])
     push_undo()
     for p in targets:
         page = doc[p]
@@ -490,9 +520,13 @@ def import_pdf():
     if not path or not os.path.isfile(path):
         raise ApiError("PDFが見つかりません")
     at = d.get("at")
-    start_at = (at + 1) if isinstance(at, int) and at >= 0 else len(doc)
+    n = len(doc)
+    # Clamp the insert position to [0, n] even if the client's index is stale.
+    start_at = min(max(0, at + 1), n) if isinstance(at, int) and at >= 0 else n
     src = pymupdf.open(path)
     try:
+        if not src.is_pdf:
+            raise ApiError("PDFファイルではありません")
         push_undo()
         doc.insert_pdf(src, start_at=start_at)
     finally:
@@ -530,8 +564,12 @@ def search():
         return jsonify(results=[], count=0)
     results = []
     for i in range(len(doc)):
-        for r in doc[i].search_for(q):
-            results.append({"page": i, "rect": [r.x0, r.y0, r.x1, r.y1]})
+        page = doc[i]
+        rmat = page.rotation_matrix
+        for r in page.search_for(q):
+            dr = r * rmat  # display-space rect so client highlights align on rotated pages
+            dr.normalize()
+            results.append({"page": i, "rect": [dr.x0, dr.y0, dr.x1, dr.y1]})
     return jsonify(results=results, count=len(results))
 
 
@@ -552,11 +590,8 @@ def get_widgets(idx):
     return jsonify(widgets=[_widget_dict(w) for w in page.widgets()])
 
 
-@api("/api/widgets_count")
-def widgets_count():
-    doc = require_doc()
-    total = sum(1 for _ in doc.widgets())
-    return jsonify(count=total)
+def _truthy_checkbox(val):
+    return val not in (None, False, "", "Off", "off", "false", "No", "no", "0", 0)
 
 
 @api("/api/set_widget", methods=["POST"])
@@ -566,18 +601,24 @@ def set_widget():
     name = d.get("name")
     if idx is None or name is None:
         raise ApiError("不正なリクエストです")
+    if "value" not in d:  # never blank a field by sending no value
+        raise ApiError("値がありません")
     doc, page = require_page(idx)
-    push_undo()
-    found = False
-    for w in page.widgets():
-        if w.field_name == name:
-            w.field_value = d.get("value")
-            w.update()
-            found = True
-            break
-    if not found:
-        state["undo_stack"].pop()  # nothing changed; drop the snapshot
+    value = d["value"]
+
+    # Find matching widgets BEFORE snapshotting so a no-op never wipes redo.
+    targets = [w for w in page.widgets() if w.field_name == name]
+    if not targets:
         raise ApiError("フィールドが見つかりません", 404)
+
+    push_undo()
+    for w in targets:  # radio groups share a name across several widgets
+        if "checkbox" in (w.field_type_string or "").lower():
+            on = w.on_state() or "On"
+            w.field_value = on if _truthy_checkbox(value) else "Off"
+        else:
+            w.field_value = value
+        w.update()
     return status()
 
 
@@ -609,8 +650,16 @@ def _save_to(doc, path):
     except Exception:
         pass
     tmp = path + ".tmp_save"
-    doc.save(tmp, garbage=4, deflate=True)
-    os.replace(tmp, path)
+    try:
+        doc.save(tmp, garbage=4, deflate=True)
+        os.replace(tmp, path)  # same dir as dest -> atomic, same filesystem
+    except Exception:
+        if os.path.exists(tmp):  # don't litter a partial temp file on failure
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        raise
 
 
 @api("/api/save", methods=["POST"])
@@ -668,9 +717,6 @@ class NativeApi:
             return None
         return res[0] if isinstance(res, (list, tuple)) else res
 
-    def pick_pdf(self):
-        return self.pick_open()
-
     def pick_save(self, default_name="edited.pdf"):
         _, save_const = _dialog_consts()
         res = self.window.create_file_dialog(
@@ -683,7 +729,8 @@ class NativeApi:
 if __name__ == "__main__":
     print("\n  PDF Editor starting...\n")
     if not JP_FONT_FILE:
-        print("  [warn] 埋め込み用日本語フォントが見つかりませんでした（'japan' にフォールバック）")
+        print("  [warn] 埋め込み用日本語フォントが見つかりません（日本語の追加/編集は不可。"
+              "NotoSansJP-Regular.ttf を同梱フォルダに置いてください）")
     else:
         print(f"  [font] {JP_FONT_FILE}")
 

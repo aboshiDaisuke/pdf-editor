@@ -249,7 +249,7 @@ body {
 
   <!-- Edit tools -->
   <div class="toolbar-group">
-    <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
+    <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集（ページ上の文字をダブルクリックでも可）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
     <button class="tbtn tool" data-tool="addText" onclick="setTool('addText')" title="テキスト追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>文字</button>
     <button class="tbtn tool" data-tool="addImage" onclick="setTool('addImage')" title="画像挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>画像</button>
   </div>
@@ -402,6 +402,11 @@ function updateTitle() {
 function invalidateAllThumbs() { thumbGen++; for (const k in thumbRev) delete thumbRev[k]; }
 function invalidateThumb(i) { thumbRev[i] = (thumbRev[i] || 0) + 1; }
 function thumbSrc(i) { return `/api/page/${i}?zoom=0.4&v=${thumbGen}_${thumbRev[i] || 0}`; }
+// Refresh just one thumbnail's image (cheap) instead of rebuilding the whole list.
+function updateThumb(i) {
+  const img = $(`.page-thumb[data-thumb="${i}"]`);
+  if (img) img.src = thumbSrc(i);
+}
 
 // ── Open ──
 function openFile() {
@@ -473,7 +478,7 @@ function renderPageList() {
 
     const thumb = document.createElement('img');
     thumb.className = 'page-thumb'; thumb.src = thumbSrc(i);
-    thumb.alt = `ページ ${i + 1}`; thumb.loading = 'lazy';
+    thumb.alt = `ページ ${i + 1}`; thumb.loading = 'lazy'; thumb.dataset.thumb = i;
 
     const label = document.createElement('span');
     label.className = 'page-label'; label.textContent = `${i + 1}`;
@@ -520,12 +525,12 @@ function renderPageList() {
       const src = dragSrcIdx; dragSrcIdx = null;
       try {
         const j = await api('/api/move_page', { from: src, to });
-        // recompute current page after the move
+        // recompute current page after the move (afterStructural() clamps it)
         const landed = to > src ? to - 1 : to;
-        if (S.cur === src) S.cur = Math.max(0, Math.min(landed, S.pages - 1));
+        if (S.cur === src) S.cur = landed;
         else if (src < S.cur && landed >= S.cur) S.cur--;
         else if (src > S.cur && landed <= S.cur) S.cur++;
-        invalidateAllThumbs(); applyStatus(j); renderPageList(); renderPage();
+        afterStructural(j);
       } catch (err) { toast('移動に失敗しました: ' + err.message, 'err'); }
     });
     list.appendChild(item);
@@ -545,15 +550,21 @@ function renderPage() {
   img.src = `/api/page/${S.cur}?zoom=${S.zoom}&v=${thumbGen}_${thumbRev[S.cur] || 0}`;
   img.ondragstart = () => false;
   const overlay = document.createElementNS(SVGNS, 'svg'); overlay.setAttribute('class', 'overlay'); overlay.id = 'overlay';
-  img.addEventListener('load', () => {
+  const sizeOverlay = () => {
+    if (!img.naturalWidth) return;
     overlay.setAttribute('width', img.naturalWidth);
     overlay.setAttribute('height', img.naturalHeight);
     overlay.setAttribute('viewBox', `0 0 ${img.naturalWidth} ${img.naturalHeight}`);
     drawSearchHits();
-  });
+  };
+  img.addEventListener('load', sizeOverlay);
+  // A cached image may already be complete before the listener attaches, so
+  // 'load' never fires; size the overlay immediately in that case.
+  if (img.complete && img.naturalWidth) sizeOverlay();
   stage.appendChild(img); stage.appendChild(overlay);
   stage.addEventListener('mousedown', onStageMouseDown);
   stage.addEventListener('mousemove', onStageMouseMove);
+  stage.addEventListener('dblclick', onStageDblClick);
   wrap.appendChild(stage); edArea.appendChild(wrap);
   applyToolCursor();
 }
@@ -579,10 +590,10 @@ function afterStructural(j) {
   invalidateAllThumbs(); renderPageList(); renderPage();
   if (S.panel) refreshPanel();
 }
-// content edit on the current page only
+// content edit on the current page only: refresh just this page + its thumbnail
 function afterContentEdit(j) {
   applyStatus(j); invalidateThumb(S.cur);
-  renderPageList(); renderPage();
+  updateThumb(S.cur); renderPage();
 }
 
 // ── Text edit (existing PDF text) ──
@@ -590,15 +601,40 @@ async function editTextMode() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
   try {
     const j = await api(`/api/text/${S.cur}`);
-    if (!j.spans || !j.spans.length) { toast('このページにテキストはありません', 'info'); return; }
+    if (!j.spans || !j.spans.length) {
+      toast('このページに編集できる文字がありません（画像/スキャンされたPDFの可能性）', 'info'); return;
+    }
     showTextListModal(j.spans);
   } catch (e) { toast(e.message, 'err'); }
+}
+// Acrobat-style: double-click a piece of text on the page to edit it directly.
+async function onStageDblClick(e) {
+  if (S.pages === 0 || S.mode) return;   // in a tool mode, dbl-click isn't an edit
+  const p = stageCoord(e);
+  try {
+    const j = await api(`/api/text/${S.cur}`);
+    const spans = j.spans || [];
+    // hit-test against the display-space bbox (dbox); pick the smallest match.
+    let hit = null, best = Infinity;
+    for (const sp of spans) {
+      const b = sp.dbox || sp.bbox;
+      if (p.x >= b[0] && p.x <= b[2] && p.y >= b[1] && p.y <= b[3]) {
+        const a = (b[2] - b[0]) * (b[3] - b[1]);
+        if (a < best) { best = a; hit = sp; }
+      }
+    }
+    if (!hit) {
+      if (!spans.length) toast('このページに編集できる文字がありません（画像/スキャンの可能性）', 'info');
+      return;
+    }
+    showTextEditDialog(hit);
+  } catch (err) { toast(err.message, 'err'); }
 }
 function showTextListModal(spans) {
   const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
   overlay.innerHTML = `<div class="modal">
       <div class="modal-header"><h2>テキスト編集</h2><button class="modal-close">&times;</button></div>
-      <div class="modal-subtitle">編集したいテキストの「編集」ボタンをクリックしてください</div>
+      <div class="modal-subtitle">編集したいテキストの「編集」ボタンをクリック（ページ上の文字をダブルクリックでも編集できます）</div>
       <div class="modal-body" id="textListBody"></div>
       <div class="modal-footer"><button id="tlClose">閉じる</button></div>
     </div>`;
@@ -635,7 +671,6 @@ function showTextEditDialog(span) {
 
 // ── Tools ──
 const DRAG_TOOLS = ['rect', 'ellipse', 'line', 'highlight', 'underline', 'strikeout', 'arrow'];
-const MARKUP_TOOLS = ['highlight', 'underline', 'strikeout', 'ink', 'arrow', 'note'];
 const TOOL_LABELS = { addText: 'テキスト追加', addImage: '画像挿入', rect: '四角', ellipse: '楕円', line: '直線', highlight: 'ハイライト', underline: '下線', strikeout: '取り消し線', ink: 'フリーハンド', arrow: '矢印', note: 'コメント' };
 const DEFAULT_COLORS = { highlight: '#ffd400', underline: '#e11d48', strikeout: '#e11d48', ink: '#1e293b', arrow: '#e11d48', rect: '#1e293b', ellipse: '#1e293b', line: '#1e293b', note: '#fde047' };
 
@@ -816,10 +851,9 @@ async function deletePage() {
       try {
         const belowCur = pages.filter(p => p < S.cur).length;
         const j = await api('/api/delete_pages', { pages });
-        applyStatus(j);
-        S.cur = Math.max(0, Math.min(S.cur - belowCur, S.pages - 1));
-        selectedPages.clear(); invalidateAllThumbs(); renderPageList(); renderPage();
-        if (S.panel) refreshPanel();
+        S.cur -= belowCur;                 // afterStructural() clamps to range
+        selectedPages.clear();
+        afterStructural(j);
         toast(`${pages.length}ページを削除しました`, 'ok');
       } catch (e) { toast(e.message, 'err'); }
     });
@@ -827,13 +861,8 @@ async function deletePage() {
   }
   confirmDialog(`ページ ${S.cur + 1} を削除しますか？`, async () => {
     try {
-      const removed = S.cur;
       const j = await api('/api/delete_page', { page: S.cur });
-      applyStatus(j);
-      if (S.cur > removed - 1 && S.cur > 0) S.cur = Math.min(S.cur, S.pages - 1);
-      S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
-      invalidateAllThumbs(); renderPageList(); renderPage();
-      if (S.panel) refreshPanel();
+      afterStructural(j);                  // applyStatus + clamp S.cur + refresh
       toast('ページを削除しました', 'ok');
     } catch (e) { toast(e.message, 'err'); }
   });
@@ -846,21 +875,21 @@ async function movePage(dir) {
   const to = dir < 0 ? from - 1 : from + 2;  // server clamps; +2 = "after next"
   try {
     const j = await api('/api/move_page', { from, to });
-    S.cur = Math.max(0, Math.min(from + dir, S.pages - 1));
-    invalidateAllThumbs(); applyStatus(j); renderPageList(); renderPage();
+    S.cur = from + dir;                     // afterStructural() clamps to range
+    afterStructural(j);
     toast(`ページ ${from + 1} → ${S.cur + 1}`, 'ok');
   } catch (e) { toast('移動に失敗: ' + e.message, 'err'); }
 }
 async function rotateCurrent() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
   const pages = (selectMode && selectedPages.size > 0) ? [...selectedPages] : [S.cur];
-  try { const j = await api('/api/rotate', { pages, dir: 1 }); applyStatus(j); invalidateAllThumbs(); renderPageList(); renderPage(); toast('回転しました', 'ok'); }
+  try { const j = await api('/api/rotate', { pages, dir: 1 }); afterStructural(j); toast('回転しました', 'ok'); }
   catch (e) { toast(e.message, 'err'); }
 }
 async function importPdf() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
   if (!hasNative()) { toast('この機能はデスクトップ版でのみ利用できます', 'info'); return; }
-  const path = await window.pywebview.api.pick_pdf();
+  const path = await window.pywebview.api.pick_open();
   if (!path) return;
   try { const j = await api('/api/import_pdf', { path, at: S.cur }); afterStructural(j); toast('PDFを挿入しました', 'ok'); }
   catch (e) { toast('挿入に失敗: ' + e.message, 'err'); }
