@@ -33,6 +33,12 @@ export function createEngine(mupdf) {
   const clampZoom = (z) => Math.max(0.1, Math.min(8, Number(z) || 2));
   const rectToQuad = (r) => [r[0], r[1], r[2], r[1], r[0], r[3], r[2], r[3]];
   const norm = (x0, y0, x1, y1) => [Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1)];
+  // Coerce to a number, but only fall back when the value is genuinely absent or
+  // non-numeric — a legitimate 0 (e.g. a zero border width) must be preserved.
+  const numOr = (v, def) => { const n = Number(v); return (v == null || v === "" || Number.isNaN(n)) ? def : n; };
+  // CJK-aware text-width estimate (≈1em per wide glyph, narrower for latin).
+  const estTextWidth = (text, size) =>
+    [...text].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e7f ? size : size * 0.62), 0);
 
   function rgbToHex(c) {
     if (!c || c.length < 3) return "#000000";
@@ -54,6 +60,26 @@ export function createEngine(mupdf) {
     if (!(idx >= 0 && idx < doc.countPages())) throw new Error(`ページ ${idx} は範囲外です`);
     return doc.loadPage(idx);
   }
+  // loadPage() allocates a WASM-backed Page that mupdf only frees via the
+  // FinalizationRegistry (non-deterministic, decoupled from the tiny JS handle).
+  // Always destroy it eagerly so long sessions don't grow the WASM heap.
+  function withPage(idx, fn) {
+    const page = requirePage(idx);
+    try { return fn(page); } finally { page.destroy && page.destroy(); }
+  }
+  // Replace the live document, eagerly freeing the previous one (a full PDF can
+  // be hundreds of MB in WASM — don't wait for GC).
+  function setDoc(doc) {
+    const old = state.doc;
+    state.doc = doc;
+    if (old && old !== doc) old.destroy && old.destroy();
+    return doc;
+  }
+
+  function validatePdfHeader(bytes) {
+    const head = new TextDecoder("latin1").decode(bytes.slice(0, 1024));
+    if (!head.includes("%PDF-")) throw new Error("PDFファイルではないようです（対応形式は PDF のみ）");
+  }
 
   function saveBytes(opts = "compress") {
     // IMPORTANT: asUint8Array() is a view into WASM memory that can be detached
@@ -66,13 +92,24 @@ export function createEngine(mupdf) {
 
   function snapshot() {
     if (!state.doc) return;
-    state.undo.push(saveBytes());
+    // Undo snapshots skip compression: every edit pays this serialize, and an
+    // uncompressed write is far cheaper than a full deflate. The byte cap still
+    // bounds memory; the final save() compresses.
+    state.undo.push(saveBytes(""));
     let total = state.undo.reduce((a, b) => a + b.length, 0);
     while (state.undo.length > 1 && (state.undo.length > UNDO_MAX_COUNT || total > UNDO_MAX_BYTES)) {
       total -= state.undo.shift().length;
     }
     state.redo = [];
     state.dirty = true;
+  }
+
+  // Restore the document to the snapshot taken by the most recent snapshot()
+  // call and discard that snapshot — used to roll back a destructive op (e.g.
+  // editText's redaction) when a later step throws.
+  function rollbackLastSnapshot() {
+    const prev = state.undo.pop();
+    if (prev) setDoc(openBytes(prev));
   }
 
   function openBytes(bytes) {
@@ -94,9 +131,8 @@ export function createEngine(mupdf) {
 
   // ── open ─────────────────────────────────────────────────────────────────
   function open(bytes, filename) {
-    const head = new TextDecoder("latin1").decode(bytes.slice(0, 1024));
-    if (!head.includes("%PDF-")) throw new Error("PDFファイルではないようです（対応形式は PDF のみ）");
-    state.doc = openBytes(bytes);
+    validatePdfHeader(bytes);
+    setDoc(openBytes(bytes));
     state.filename = filename || "document.pdf";
     state.dirty = false;
     state.undo = [];
@@ -106,22 +142,27 @@ export function createEngine(mupdf) {
 
   // ── render ─────────────────────────────────────────────────────────────────
   function renderPNG(idx, zoom) {
-    const page = requirePage(idx);
-    const pix = page.toPixmap(mupdf.Matrix.scale(clampZoom(zoom), clampZoom(zoom)),
-      mupdf.ColorSpace.DeviceRGB, false, true);
-    const png = pix.asPNG().slice();
-    pix.destroy();
-    return png;
+    return withPage(idx, (page) => {
+      const pix = page.toPixmap(mupdf.Matrix.scale(clampZoom(zoom), clampZoom(zoom)),
+        mupdf.ColorSpace.DeviceRGB, false, true);
+      const png = pix.asPNG().slice();
+      pix.destroy();
+      return png;
+    });
   }
 
   function pageSizePts(idx) {
-    const b = requirePage(idx).getBounds();
-    return { w: b[2] - b[0], h: b[3] - b[1] };
+    return withPage(idx, (page) => {
+      const b = page.getBounds();
+      return { w: b[2] - b[0], h: b[3] - b[1] };
+    });
   }
 
   // ── text extraction (display space) ──────────────────────────────────────
   function getText(idx) {
-    const page = requirePage(idx);
+    return withPage(idx, (page) => getTextForPage(page));
+  }
+  function getTextForPage(page) {
     const st = page.toStructuredText("preserve-whitespace");
     const spans = [];
     let cur = null;
@@ -173,9 +214,8 @@ export function createEngine(mupdf) {
 
   // ── FreeText insertion (used by add_text and edit_text reinsertion) ──────
   function insertFreeText(page, x, yTop, text, size, color) {
-    // Width generous enough to avoid wrapping; CJK ~1em/char, latin narrower.
-    const est = [...text].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e7f ? size : size * 0.62), 0);
-    const w = Math.max(est, 8) + size * 0.6;
+    // Width generous enough to avoid wrapping.
+    const w = Math.max(estTextWidth(text, size), 8) + size * 0.6;
     const ft = page.createAnnotation("FreeText");
     ft.setRect([x, yTop, x + w, yTop + size * 1.55]);
     ft.setDefaultAppearance("Helv", size, col(color));
@@ -188,83 +228,101 @@ export function createEngine(mupdf) {
 
   function editText(idx, bbox, origin, newText, fontSize, color) {
     snapshot();
-    const page = requirePage(idx);
-    const rect = norm(bbox[0], bbox[1], bbox[2], bbox[3]);
-    // Remove ONLY the original glyphs, keep images / vector art underneath.
-    const red = page.createAnnotation("Redact");
-    red.setRect(rect);
-    red.update();
-    page.applyRedactions(false, mupdf.PDFPage.REDACT_IMAGE_NONE,
-      mupdf.PDFPage.REDACT_LINE_ART_NONE, mupdf.PDFPage.REDACT_TEXT_REMOVE);
-    // Re-insert near the original baseline/top-left.
-    const size = Number(fontSize) || (rect[3] - rect[1]) || 12;
-    insertFreeText(page, rect[0], rect[1] - size * 0.12, newText, size, color);
-    return status();
+    // applyRedactions is destructive (glyphs are gone before the new text goes
+    // in). If anything below throws, roll the document back to the snapshot so a
+    // failed edit can't silently lose the original content.
+    try {
+      return withPage(idx, (page) => {
+        const rect = norm(bbox[0], bbox[1], bbox[2], bbox[3]);
+        // Remove ONLY the original glyphs, keep images / vector art underneath.
+        const red = page.createAnnotation("Redact");
+        red.setRect(rect);
+        red.update();
+        page.applyRedactions(false, mupdf.PDFPage.REDACT_IMAGE_NONE,
+          mupdf.PDFPage.REDACT_LINE_ART_NONE, mupdf.PDFPage.REDACT_TEXT_REMOVE);
+        // Re-insert near the original baseline/top-left.
+        const size = numOr(fontSize, (rect[3] - rect[1]) || 12);
+        insertFreeText(page, rect[0], rect[1] - size * 0.12, newText, size, color);
+        return status();
+      });
+    } catch (e) {
+      rollbackLastSnapshot();
+      throw e;
+    }
   }
 
   function addText(idx, x, y, text, size, color, bg) {
     snapshot();
-    const page = requirePage(idx);
-    size = Number(size) || 14;
-    if (bg && text) {
-      const est = [...text].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e7f ? size : size * 0.62), 0);
-      const pad = size * 0.2;
-      const fill = bg === true || bg === "white" ? [1, 1, 1] : col(bg, [1, 1, 1]);
-      const sq = page.createAnnotation("Square");
-      sq.setRect([x - pad, y - pad, x + est + pad, y + size + pad]);
-      sq.setInteriorColor(fill);
-      sq.setBorderWidth(0);
-      try { sq.setColor([]); } catch (e) {}
-      sq.update();
-    }
-    insertFreeText(page, x, y, text, size, color);
-    return status();
+    return withPage(idx, (page) => {
+      size = numOr(size, 14);
+      if (bg && text) {
+        const est = estTextWidth(text, size);
+        const pad = size * 0.2;
+        const fill = bg === true || bg === "white" ? [1, 1, 1] : col(bg, [1, 1, 1]);
+        const sq = page.createAnnotation("Square");
+        sq.setRect([x - pad, y - pad, x + est + pad, y + size + pad]);
+        sq.setInteriorColor(fill);
+        sq.setBorderWidth(0);
+        try { sq.setColor([]); } catch (e) {}
+        sq.update();
+      }
+      insertFreeText(page, x, y, text, size, color);
+      return status();
+    });
   }
 
   // ── image (Stamp annotation) ─────────────────────────────────────────────
   function addImage(idx, x, y, w, imageBytes) {
     snapshot();
-    const page = requirePage(idx);
-    const img = new mupdf.Image(imageBytes);
-    const iw = img.getWidth(), ih = img.getHeight();
-    const h = w * ih / Math.max(1, iw);
-    const st = page.createAnnotation("Stamp");
-    st.setRect([x, y, x + w, y + h]);
-    st.setStampImage(img);
-    st.update();
-    return status();
+    return withPage(idx, (page) => {
+      const img = new mupdf.Image(imageBytes);
+      try {
+        const iw = img.getWidth(), ih = img.getHeight();
+        const h = w * ih / Math.max(1, iw);
+        const st = page.createAnnotation("Stamp");
+        st.setRect([x, y, x + w, y + h]);
+        st.setStampImage(img);
+        st.update();
+      } finally {
+        img.destroy && img.destroy();   // the image is copied into the PDF on update()
+      }
+      return status();
+    });
   }
 
   // ── vector shapes (Square / Circle / Line annotations) ───────────────────
   function drawShape(idx, type, x0, y0, x1, y1, color, width, fill) {
     snapshot();
-    const page = requirePage(idx);
-    width = Number(width) || 2;
-    if (type === "rect" || type === "ellipse") {
-      const a = page.createAnnotation(type === "rect" ? "Square" : "Circle");
-      a.setRect(norm(x0, y0, x1, y1));
-      a.setColor(col(color));
-      if (fill) a.setInteriorColor(col(fill));
-      a.setBorderWidth(width);
-      a.update();
-    } else if (type === "line") {
-      const a = page.createAnnotation("Line");
-      a.setLine([x0, y0], [x1, y1]);
-      a.setColor(col(color));
-      a.setBorderWidth(width);
-      a.update();
-    } else {
-      throw new Error("不明な図形です");
-    }
-    return status();
+    return withPage(idx, (page) => {
+      width = numOr(width, 2);
+      if (type === "rect" || type === "ellipse") {
+        const a = page.createAnnotation(type === "rect" ? "Square" : "Circle");
+        a.setRect(norm(x0, y0, x1, y1));
+        a.setColor(col(color));
+        if (fill) a.setInteriorColor(col(fill));
+        a.setBorderWidth(width);
+        a.update();
+      } else if (type === "line") {
+        const a = page.createAnnotation("Line");
+        a.setLine([x0, y0], [x1, y1]);
+        a.setColor(col(color));
+        a.setBorderWidth(width);
+        a.update();
+      } else {
+        throw new Error("不明な図形です");
+      }
+      return status();
+    });
   }
 
   // ── markup annotations ───────────────────────────────────────────────────
   function addAnnot(idx, p) {
     snapshot();
-    const page = requirePage(idx);
+    return withPage(idx, (page) => addAnnotToPage(page, p));
+  }
+  function addAnnotToPage(page, p) {
     const kind = p.kind;
-    const width = Number(p.width) || 2;
+    const width = numOr(p.width, 2);
     if (kind === "highlight" || kind === "underline" || kind === "strikeout") {
       const box = norm(p.x0, p.y0, p.x1, p.y1);
       let quads = charQuadsInBox(page, box);
@@ -307,28 +365,54 @@ export function createEngine(mupdf) {
     Ink: "フリーハンド", Line: "直線/矢印", Text: "コメント",
     Square: "四角", Circle: "楕円", FreeText: "テキスト", Stamp: "画像",
   };
+  // Annotation kinds that have a meaningful /Rect and can be moved/resized.
+  const RECT_EDITABLE = new Set(["Stamp", "Square", "Circle", "FreeText", "Text"]);
 
   function listAnnots(idx) {
-    const page = requirePage(idx);
-    const annots = page.getAnnotations();
-    const out = [];
-    annots.forEach((a, i) => {
-      const t = a.getType();
-      if (t === "Widget" || t === "Popup" || t === "Link" || t === "Redact") return;
-      const r = a.getBounds();   // getRect() throws for Line/Ink (no Rect); getBounds works for all
-      out.push({ xref: i, type: ANNOT_LABELS[t] || t || "注釈", rect: [r[0], r[1], r[2], r[3]] });
+    return withPage(idx, (page) => {
+      const annots = page.getAnnotations();
+      const out = [];
+      annots.forEach((a, i) => {
+        const t = a.getType();
+        if (t === "Widget" || t === "Popup" || t === "Link" || t === "Redact") return;
+        // Report the core /Rect for rect-editable kinds (so select→setRect round-trips
+        // exactly), but getBounds for Line/Ink which have no Rect (getRect throws).
+        let r;
+        try { r = RECT_EDITABLE.has(t) ? a.getRect() : a.getBounds(); }
+        catch (e) { r = a.getBounds(); }
+        // xref is the index into getAnnotations(); deleteAnnot/setAnnotRect index
+        // the same array, so they stay in lock-step (skipped types still consume a slot).
+        out.push({ xref: i, kind: t, type: ANNOT_LABELS[t] || t || "注釈", rect: [r[0], r[1], r[2], r[3]] });
+      });
+      return { annots: out };
     });
-    return { annots: out };
   }
 
   function deleteAnnot(idx, xref) {
     snapshot();
-    const page = requirePage(idx);
-    const annots = page.getAnnotations();
-    const target = annots[xref];
-    if (!target) throw new Error("注釈が見つかりません");
-    page.deleteAnnotation(target);
-    return status();
+    return withPage(idx, (page) => {
+      const annots = page.getAnnotations();
+      const target = annots[xref];
+      if (!target) throw new Error("注釈が見つかりません");
+      page.deleteAnnotation(target);
+      return status();
+    });
+  }
+
+  // Move/resize a rect-based annotation (Stamp/Square/Circle/FreeText/Text) by
+  // rewriting its Rect. xref is the getAnnotations() index, as in listAnnots.
+  // Validate BEFORE snapshot so a rejected edit doesn't push a no-op undo state
+  // or mark the document dirty.
+  function setAnnotRect(idx, xref, rect) {
+    return withPage(idx, (page) => {
+      const a = page.getAnnotations()[xref];
+      if (!a) throw new Error("注釈が見つかりません");
+      if (!RECT_EDITABLE.has(a.getType())) throw new Error("この注釈は移動・リサイズに対応していません");
+      snapshot();
+      a.setRect(norm(rect[0], rect[1], rect[2], rect[3]));
+      a.update();
+      return status();
+    });
   }
 
   // ── page organisation ────────────────────────────────────────────────────
@@ -382,24 +466,34 @@ export function createEngine(mupdf) {
       : pages.filter((p) => p >= 0 && p < doc.countPages());
     snapshot();
     for (const p of targets) {
-      const obj = doc.loadPage(p).getObject();
-      let cur = 0;
-      const ro = obj.get("Rotate");
-      if (ro && ro.isNumber && ro.isNumber()) cur = ro.asNumber();
-      obj.put("Rotate", ((cur + step) % 360 + 360) % 360);
+      withPage(p, (page) => {
+        const obj = page.getObject();
+        // /Rotate is inheritable: read it resolved up the Pages tree, not just
+        // the direct key, so a page that inherits its rotation isn't reset to 0.
+        let cur = 0;
+        const ro = obj.getInheritable("Rotate");
+        if (ro && ro.isNumber && ro.isNumber()) cur = ro.asNumber();
+        ro && ro.destroy && ro.destroy();
+        obj.put("Rotate", ((cur + step) % 360 + 360) % 360);
+        obj.destroy && obj.destroy();
+      });
     }
     return status();
   }
 
   function importPdf(bytes, at) {
     const doc = requireDoc();
+    validatePdfHeader(bytes);
     const src = openBytes(bytes);
-    const n = doc.countPages();
-    let startAt = (Number.isInteger(at) && at >= 0) ? Math.min(at + 1, n) : n;
-    snapshot();
-    const count = src.countPages();
-    for (let i = 0; i < count; i++) doc.graftPage(startAt + i, src, i);
-    src.destroy && src.destroy();
+    try {
+      const n = doc.countPages();
+      let startAt = (Number.isInteger(at) && at >= 0) ? Math.min(at + 1, n) : n;
+      snapshot();
+      const count = src.countPages();
+      for (let i = 0; i < count; i++) doc.graftPage(startAt + i, src, i);
+    } finally {
+      src.destroy && src.destroy();   // freed even if a graft throws mid-loop
+    }
     return status({ inserted: true });
   }
 
@@ -407,13 +501,18 @@ export function createEngine(mupdf) {
     const doc = requireDoc();
     const list = [...new Set((pages || []).filter((p) => p >= 0 && p < doc.countPages()))].sort((a, b) => a - b);
     if (!list.length) throw new Error("抽出するページがありません");
+    // NOTE: graftPage copies pages only — document-level data (AcroForm fields,
+    // outlines) is intentionally not carried into the extracted file.
     const out = new mupdf.PDFDocument();
-    for (let i = 0; i < list.length; i++) out.graftPage(i, doc, list[i]);
-    const buf = out.saveToBuffer("compress");
-    const bytes = buf.asUint8Array().slice();
-    buf.destroy && buf.destroy();
-    out.destroy && out.destroy();
-    return { bytes, count: list.length };
+    try {
+      for (let i = 0; i < list.length; i++) out.graftPage(i, doc, list[i]);
+      const buf = out.saveToBuffer("compress");
+      const bytes = buf.asUint8Array().slice();
+      buf.destroy && buf.destroy();
+      return { bytes, count: list.length };
+    } finally {
+      out.destroy && out.destroy();   // freed even if a graft/save throws
+    }
   }
 
   // ── search (display space quads) ─────────────────────────────────────────
@@ -423,74 +522,81 @@ export function createEngine(mupdf) {
     if (!q) return { results: [], count: 0 };
     const results = [];
     for (let i = 0; i < doc.countPages(); i++) {
-      const page = doc.loadPage(i);
-      let hits = [];
-      try { hits = page.search(q); } catch (e) { hits = []; }
-      for (const match of hits) {
-        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-        for (const quad of match) {
-          const xs = [quad[0], quad[2], quad[4], quad[6]], ys = [quad[1], quad[3], quad[5], quad[7]];
-          x0 = Math.min(x0, ...xs); x1 = Math.max(x1, ...xs);
-          y0 = Math.min(y0, ...ys); y1 = Math.max(y1, ...ys);
+      withPage(i, (page) => {
+        let hits = [];
+        try { hits = page.search(q); } catch (e) { hits = []; }
+        for (const match of hits) {
+          let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+          for (const quad of match) {
+            const xs = [quad[0], quad[2], quad[4], quad[6]], ys = [quad[1], quad[3], quad[5], quad[7]];
+            x0 = Math.min(x0, ...xs); x1 = Math.max(x1, ...xs);
+            y0 = Math.min(y0, ...ys); y1 = Math.max(y1, ...ys);
+          }
+          if (x1 > x0) results.push({ page: i, rect: [x0, y0, x1, y1] });
         }
-        if (x1 > x0) results.push({ page: i, rect: [x0, y0, x1, y1] });
-      }
+      });
     }
     return { results, count: results.length };
   }
 
   // ── form fields (widgets) ────────────────────────────────────────────────
   function getWidgets(idx) {
-    const page = requirePage(idx);
-    const widgets = page.getWidgets().map((w) => {
-      let options = null;
-      try { if (w.isChoice && w.isChoice()) options = w.getOptions(); } catch (e) {}
-      const r = w.getRect();
-      return {
-        name: w.getName(),
-        type: w.getFieldType(),
-        value: w.getValue(),
-        rect: [r[0], r[1], r[2], r[3]],
-        options: options && options.length ? options : null,
-      };
+    return withPage(idx, (page) => {
+      const widgets = page.getWidgets().map((w) => {
+        let options = null;
+        try { if (w.isChoice && w.isChoice()) options = w.getOptions(); } catch (e) {}
+        const r = w.getRect();
+        return {
+          name: w.getName(),
+          type: w.getFieldType(),
+          value: w.getValue(),
+          rect: [r[0], r[1], r[2], r[3]],
+          options: options && options.length ? options : null,
+        };
+      });
+      return { widgets };
     });
-    return { widgets };
   }
 
-  const OFF = new Set([null, undefined, false, "", "Off", "off", "false", "No", "no", "0", 0]);
+  // The canonical PDF "off" appearance state is /Off. Keep this set to the real
+  // off values only — including "0"/0 here would wrongly read a checkbox whose
+  // on-state export value is "0" as unchecked.
+  const OFF = new Set([null, undefined, false, "", "Off", "off"]);
 
   function setWidget(idx, name, value) {
-    const page = requirePage(idx);
-    const targets = page.getWidgets().filter((w) => w.getName() === name);
-    if (!targets.length) throw new Error("フィールドが見つかりません");
-    snapshot();
-    for (const w of targets) {
-      if (w.isCheckbox && w.isCheckbox()) {
-        const want = !OFF.has(value);
-        const isOn = !OFF.has(w.getValue());
-        if (want !== isOn) w.toggle();
-      } else if (w.isChoice && w.isChoice()) {
-        w.setChoiceValue(String(value));
-      } else {
-        w.setTextValue(String(value));
+    if (value === undefined) throw new Error("値がありません");
+    return withPage(idx, (page) => {
+      const targets = page.getWidgets().filter((w) => w.getName() === name);
+      if (!targets.length) throw new Error("フィールドが見つかりません");
+      snapshot();
+      for (const w of targets) {
+        if (w.isCheckbox && w.isCheckbox()) {
+          const want = !OFF.has(value);
+          const isOn = !OFF.has(w.getValue());
+          if (want !== isOn) w.toggle();
+        } else if (w.isChoice && w.isChoice()) {
+          w.setChoiceValue(String(value));
+        } else {
+          w.setTextValue(String(value));
+        }
+        w.update();
       }
-      w.update();
-    }
-    return status();
+      return status();
+    });
   }
 
   // ── undo / redo (byte snapshots) ─────────────────────────────────────────
   function undo() {
     if (!state.undo.length) return status({ ok: false });
-    state.redo.push(saveBytes());
-    state.doc = openBytes(state.undo.pop());
+    state.redo.push(saveBytes(""));
+    setDoc(openBytes(state.undo.pop()));   // frees the doc being replaced
     state.dirty = true;
     return status();
   }
   function redo() {
     if (!state.redo.length) return status({ ok: false });
-    state.undo.push(saveBytes());
-    state.doc = openBytes(state.redo.pop());
+    state.undo.push(saveBytes(""));
+    setDoc(openBytes(state.redo.pop()));
     state.dirty = true;
     return status();
   }
@@ -506,7 +612,7 @@ export function createEngine(mupdf) {
 
   return {
     open, renderPNG, pageSizePts, getText, editText, addText, addImage, drawShape,
-    addAnnot, listAnnots, deleteAnnot, addPage, deletePage, deletePages, movePage,
+    addAnnot, listAnnots, deleteAnnot, setAnnotRect, addPage, deletePage, deletePages, movePage,
     rotate, importPdf, extract, search, getWidgets, setWidget, undo, redo, save, status,
     _state: state,
   };
