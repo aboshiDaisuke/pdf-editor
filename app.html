@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PDF Editor</title>
-<script>(function(){try{var t=localStorage.getItem('pdfEditorTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem('pdfEditorTheme');if(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -240,6 +240,14 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .toast-ok { background: var(--green); } .toast-err { background: var(--red); } .toast-info { background: var(--pri); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.95); } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.95); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 </style>
 </head>
 <body>
