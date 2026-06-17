@@ -2,6 +2,9 @@
 
 ローカルで動作する Acrobat ライクな PDF 編集デスクトップアプリ。Flask + PyMuPDF。
 
+> 🌐 **ブラウザ版もあります** — Python サーバー不要で、ブラウザ内だけで完結します（同じ MuPDF エンジンの WebAssembly 版を使用）。
+> ライト/ダークのテーマ切替つき。詳しくは [`web/README.md`](web/README.md) を参照。
+
 ## 機能
 
 ### ファイル

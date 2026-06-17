@@ -1,25 +1,42 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PDF Editor</title>
+<script>(function(){try{var t=localStorage.getItem('pdfEditorTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
   /* Professional dark chrome with a periwinkle accent + light document canvas feel */
   --pri: #7c8cff; --pri-h: #99a4ff; --pri-l: rgba(124,140,255,.16);
+  --red: #ff6b6b; --green: #34d399; --amber: #fbbf24;
+  --radius: 8px; --radius-lg: 12px;
+  --tr: 150ms ease;
+  /* ── Dark theme (default — unchanged look) ── */
   --bg: #16191f; --surface: #1e222b; --surface-h: #2a2f3a;
   --elev: #2a2f3a;
   --border: #2c313b; --border-s: #3c4350;
   --txt: #e9ebf1; --txt2: #9aa1b1; --txt3: #646b7b;
-  --red: #ff6b6b; --green: #34d399; --amber: #fbbf24;
-  --radius: 8px; --radius-lg: 12px;
   --shadow: 0 1px 2px rgba(0,0,0,.5);
   --shadow-md: 0 4px 12px rgba(0,0,0,.5);
   --shadow-lg: 0 18px 44px rgba(0,0,0,.58);
   --shadow-xl: 0 28px 64px rgba(0,0,0,.66);
-  --tr: 150ms ease;
+  --sb-thumb: #3a4150; --sb-thumb-h: #4a5364;
+  --sel: rgba(124,140,255,.32);
+}
+/* ── Light theme (white & black) ── */
+[data-theme="light"] {
+  --bg: #eceef3; --surface: #ffffff; --surface-h: #f4f5f8;
+  --elev: #ffffff;
+  --border: #e4e7ee; --border-s: #cfd5df;
+  --txt: #1b1f27; --txt2: #586173; --txt3: #8a93a4;
+  --shadow: 0 1px 2px rgba(16,24,40,.08);
+  --shadow-md: 0 4px 14px rgba(16,24,40,.10);
+  --shadow-lg: 0 16px 40px rgba(16,24,40,.14);
+  --shadow-xl: 0 28px 64px rgba(16,24,40,.18);
+  --sb-thumb: #cbd1dc; --sb-thumb-h: #b4bccb;
+  --sel: rgba(124,140,255,.26);
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Hiragino Sans", sans-serif;
@@ -32,11 +49,11 @@ input[type="text"], input[type="number"], textarea, select {
   background: var(--elev); color: var(--txt);
 }
 input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
-::selection { background: rgba(124,140,255,.32); }
-/* Dark scrollbars */
+::selection { background: var(--sel); }
+/* Scrollbars (theme-aware) */
 ::-webkit-scrollbar { width: 11px; height: 11px; }
-::-webkit-scrollbar-thumb { background: #3a4150; border-radius: 6px; border: 3px solid transparent; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: #4a5364; background-clip: padding-box; }
+::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 6px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-h); background-clip: padding-box; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ===== Header ===== */
@@ -74,6 +91,9 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .tbtn.icon-only { padding: 0 8px; }
 .tbtn-primary { background: var(--pri); color: #fff; border-color: var(--pri); font-weight: 600; }
 .tbtn-primary:hover { background: var(--pri-h); }
+#btnTheme svg { width: 16px; height: 16px; }
+[data-theme="dark"] #btnTheme .theme-moon { display: none; }
+[data-theme="light"] #btnTheme .theme-sun { display: none; }
 
 .zoom-display { font-size: 11px; font-weight: 700; color: var(--txt3); min-width: 42px; text-align: center; user-select: none; }
 #pageIndicator { cursor: pointer; border-radius: 6px; padding: 3px 6px; transition: background var(--tr); }
@@ -304,6 +324,11 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   <div class="toolbar-group">
     <button class="tbtn icon-only" id="btnSearch" onclick="togglePanel('search')" title="検索 (⌘F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
     <button class="tbtn icon-only" id="btnForms" onclick="togglePanel('forms')" title="フォーム入力"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+    <div class="sep"></div>
+    <button class="tbtn icon-only" id="btnTheme" onclick="toggleTheme()" title="ライト / ダーク切替">
+      <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
   </div>
 </header>
 
@@ -392,6 +417,13 @@ function hexToRgb01(h) {
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function hasNative() { return !!(window.pywebview && window.pywebview.api); }
+
+// ── Theme (light / dark) ──
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('pdfEditorTheme', next); } catch (e) {}
+}
 
 // ── Central API helper: rejects on !ok or {error} ──
 async function api(path, body, init = {}) {
