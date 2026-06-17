@@ -793,13 +793,15 @@ function showAddTextDialog(x, y) {
   openDialog(`<h3>テキストを追加</h3>
     <input type="text" id="dlgAddText" placeholder="テキストを入力...">
     <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgAddSize" value="14" min="4" max="200" step="0.5">
-      <label>色:</label><input type="color" id="dlgAddColor" value="#000000"></div>`,
+      <label>色:</label><input type="color" id="dlgAddColor" value="#000000"></div>
+    <label class="to-chk"><input type="checkbox" id="dlgAddBg"> 下地を白で塗る（下の文字を隠して上書き）</label>`,
     async (root) => {
       const text = root.querySelector('#dlgAddText').value;
       const size = parseFloat(root.querySelector('#dlgAddSize').value) || 14;
       const color = hexToRgb01(root.querySelector('#dlgAddColor').value);
+      const bg = root.querySelector('#dlgAddBg').checked;
       if (!text) return true;
-      try { const j = await api('/api/add_text', { page: S.cur, x, y, text, size, color }); afterContentEdit(j); toast('テキストを追加しました', 'ok'); }
+      try { const j = await api('/api/add_text', { page: S.cur, x, y, text, size, color, bg }); afterContentEdit(j); toast('テキストを追加しました', 'ok'); }
       catch (e) { toast('テキスト追加に失敗: ' + e.message, 'err'); }
       return true;
     }, { okLabel: 'OK', focus: '#dlgAddText' });

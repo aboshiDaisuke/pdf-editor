@@ -309,10 +309,25 @@ def add_text():
         raise ApiError("不正なリクエストです")
     doc, page = require_page(idx)
     size = float(d.get("size", 14))
+    x = float(d.get("x", 50))
+    y = float(d.get("y", 50))
     push_undo()
+    # Optional opaque background ("whiteout") to cover the content underneath,
+    # so you can type over / replace existing text on any PDF (incl. scans).
+    bg = d.get("bg")
+    if bg and text:
+        try:
+            font = pymupdf.Font(fontfile=JP_FONT_FILE) if JP_FONT_FILE else pymupdf.Font("helv")
+            tw = font.text_length(text, fontsize=size)
+        except Exception:
+            tw = size * len(text) * 0.6
+        pad = size * 0.2
+        fill = (1, 1, 1) if bg is True or bg == "white" else rgb(bg, default=(1, 1, 1))
+        page.draw_rect(_page_rect(page, x - pad, y - pad, x + tw + pad, y + size + pad),
+                       color=None, fill=fill)
     # Click point is the visual top-left (display space): drop to the baseline,
     # then map to page space so it lands correctly on rotated pages.
-    pt = _page_pt(page, d.get("x", 50), d.get("y", 50) + size)
+    pt = _page_pt(page, x, y + size)
     insert_text(page, pt, text, size, rgb(d.get("color")), rotate=_upright(page))
     return status()
 
