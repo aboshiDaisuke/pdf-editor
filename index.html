@@ -532,8 +532,8 @@ async function api(path, body) {
   const b = body || {};
   if (p === '/api/open') return engine.open(b.bytes, b.filename);
   if (p.startsWith('/api/text/')) return engine.getText(idx);
-  if (p === '/api/edit_text') return engine.editText(b.page, b.bbox, b.origin, b.new_text, b.font_size, b.color);
-  if (p === '/api/add_text') return engine.addText(b.page, b.x, b.y, b.text, b.size, b.color, b.bg);
+  if (p === '/api/edit_text') return engine.editText(b.page, b.bbox, b.origin, b.new_text, b.font_size, b.color, b.font);
+  if (p === '/api/add_text') return engine.addText(b.page, b.x, b.y, b.text, b.size, b.color, b.bg, b.font);
   if (p === '/api/add_image') return engine.addImage(b.page, b.x, b.y, b.w, b.image);
   if (p === '/api/draw_shape') return engine.drawShape(b.page, b.type, b.x0, b.y0, b.x1, b.y1, b.color, b.width, b.fill);
   if (p === '/api/annot') return engine.addAnnot(b.page, b);
@@ -907,15 +907,17 @@ function showTextListModal(spans) {
 function showTextEditDialog(span) {
   openDialog(`<h3>テキストを編集</h3>
     <input type="text" id="dlgEditText" value="${escAttr(span.text)}">
+    <div class="dialog-row"><label>フォント:</label>${fontSelectHtml('dlgEditFont')}</div>
     <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgEditSize" value="${span.size}" min="4" max="200" step="0.5">
       <label>色:</label><input type="color" id="dlgEditColor" value="${escAttr(span.color)}"></div>`,
     async (root) => {
       const newText = root.querySelector('#dlgEditText').value;
       const fontSize = parseFloat(root.querySelector('#dlgEditSize').value) || span.size;
       const color = hexToRgb01(root.querySelector('#dlgEditColor').value);
+      const font = root.querySelector('#dlgEditFont').value;
       if (newText === span.text) return true;
       try {
-        const j = await api('/api/edit_text', { page: S.cur, bbox: span.bbox, origin: span.origin, new_text: newText, font_size: fontSize, color });
+        const j = await api('/api/edit_text', { page: S.cur, bbox: span.bbox, origin: span.origin, new_text: newText, font_size: fontSize, color, font });
         afterContentEdit(j); toast('テキストを変更しました', 'ok');
       } catch (e) { toast('テキスト編集に失敗: ' + e.message, 'err'); }
       return true;
@@ -998,9 +1000,22 @@ $('#imgInput').addEventListener('change', e => {
 });
 
 // ── Add text dialog ──
+// Font picker shared by the add / edit text dialogs. `jp` (Droid Sans Fallback)
+// covers Japanese AND latin, so it's the safe default; the others are cleaner
+// for pure-latin text. Values map to FONT_SPECS in pdf-engine.js.
+const TEXT_FONTS = [
+  ['jp', '日本語（ゴシック）'], ['sans', '欧文 Sans (Helvetica)'],
+  ['serif', '欧文 Serif (Times)'], ['mono', '等幅 (Courier)'],
+];
+function fontSelectHtml(id, sel = 'jp') {
+  const opts = TEXT_FONTS.map(([v, l]) =>
+    `<option value="${v}"${v === sel ? ' selected' : ''}>${l}</option>`).join('');
+  return `<select id="${id}" style="flex:1;min-width:0">${opts}</select>`;
+}
 function showAddTextDialog(x, y) {
   openDialog(`<h3>テキストを追加</h3>
     <input type="text" id="dlgAddText" placeholder="テキストを入力...">
+    <div class="dialog-row"><label>フォント:</label>${fontSelectHtml('dlgAddFont')}</div>
     <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgAddSize" value="14" min="4" max="200" step="0.5">
       <label>色:</label><input type="color" id="dlgAddColor" value="#000000"></div>
     <label class="to-chk"><input type="checkbox" id="dlgAddBg"> 下地を白で塗る（下の文字を隠して上書き）</label>`,
@@ -1008,9 +1023,10 @@ function showAddTextDialog(x, y) {
       const text = root.querySelector('#dlgAddText').value;
       const size = parseFloat(root.querySelector('#dlgAddSize').value) || 14;
       const color = hexToRgb01(root.querySelector('#dlgAddColor').value);
+      const font = root.querySelector('#dlgAddFont').value;
       const bg = root.querySelector('#dlgAddBg').checked;
       if (!text) return true;
-      try { const j = await api('/api/add_text', { page: S.cur, x, y, text, size, color, bg }); afterContentEdit(j); toast('テキストを追加しました', 'ok'); }
+      try { const j = await api('/api/add_text', { page: S.cur, x, y, text, size, color, bg, font }); afterContentEdit(j); toast('テキストを追加しました', 'ok'); }
       catch (e) { toast('テキスト追加に失敗: ' + e.message, 'err'); }
       return true;
     }, { okLabel: 'OK', focus: '#dlgAddText' });
@@ -1155,7 +1171,25 @@ function hitHandle(p, r) {
   return null;
 }
 function insideRect(p, r) { return p.x >= r[0] && p.x <= r[2] && p.y >= r[1] && p.y <= r[3]; }
-function resizedRect(orig, handle, p) {
+function resizedRect(orig, handle, p, lockAspect) {
+  if (lockAspect) {
+    // Images must keep their original proportions, so anchor the opposite corner
+    // and scale the dragged corner along the axis that moved more (relative to
+    // the original size), deriving the other side from the original aspect.
+    const ow = orig[2] - orig[0], oh = orig[3] - orig[1];
+    const aspect = ow / Math.max(1e-6, oh);
+    // anchor = corner opposite the dragged handle; signs point toward the drag.
+    const ax = (handle === 0 || handle === 2) ? orig[2] : orig[0];
+    const ay = (handle === 0 || handle === 1) ? orig[3] : orig[1];
+    const sx = (handle === 0 || handle === 2) ? -1 : 1;
+    const sy = (handle === 0 || handle === 1) ? -1 : 1;
+    const pw = Math.abs(p.x - ax), ph = Math.abs(p.y - ay);
+    let nw, nh;
+    if (pw / Math.max(1e-6, ow) > ph / Math.max(1e-6, oh)) { nw = pw; nh = pw / aspect; }
+    else { nh = ph; nw = ph * aspect; }
+    const cx = ax + sx * nw, cy = ay + sy * nh;
+    return [Math.min(ax, cx), Math.min(ay, cy), Math.max(ax, cx), Math.max(ay, cy)];
+  }
   let [x0, y0, x1, y1] = orig;
   if (handle === 0) { x0 = p.x; y0 = p.y; } else if (handle === 1) { x1 = p.x; y0 = p.y; }
   else if (handle === 2) { x0 = p.x; y1 = p.y; } else { x1 = p.x; y1 = p.y; }
@@ -1192,7 +1226,7 @@ function onSelectMove(p) {
   if (S.draw.kind === 'move') {
     const dx = p.x - S.draw.startPt.x, dy = p.y - S.draw.startPt.y, o = S.draw.orig;
     nr = [o[0] + dx, o[1] + dy, o[2] + dx, o[3] + dy];
-  } else { nr = resizedRect(S.draw.orig, S.draw.handle, p); }
+  } else { nr = resizedRect(S.draw.orig, S.draw.handle, p, S.sel && S.sel.kind === 'Stamp'); }
   S.draw.cur = nr; drawSelection(nr);
 }
 async function onSelectUp(e) {
@@ -1205,7 +1239,7 @@ async function onSelectUp(e) {
   const p = stageCoord(e);
   let nr;
   if (draw.kind === 'move') { const dx = p.x - draw.startPt.x, dy = p.y - draw.startPt.y, o0 = draw.orig; nr = [o0[0] + dx, o0[1] + dy, o0[2] + dx, o0[3] + dy]; }
-  else nr = resizedRect(draw.orig, draw.handle, p);
+  else nr = resizedRect(draw.orig, draw.handle, p, S.sel.kind === 'Stamp');
   const MIN = 6;                       // keep a usable minimum size
   if (nr[2] - nr[0] < MIN) nr[2] = nr[0] + MIN;
   if (nr[3] - nr[1] < MIN) nr[3] = nr[1] + MIN;
