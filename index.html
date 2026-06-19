@@ -62,15 +62,19 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   padding: 0 12px; gap: 2px;
   box-shadow: var(--shadow);
   position: relative; z-index: 100;
+  overflow-x: auto; overflow-y: hidden;
 }
+.header::-webkit-scrollbar { height: 4px; }
+.header::-webkit-scrollbar-thumb { background: var(--border-s); border-radius: 2px; border: 0; }
 .logo {
   display: flex; align-items: center; gap: 7px;
   font-size: 14px; font-weight: 700; letter-spacing: -0.3px;
   padding-right: 10px; color: var(--txt); user-select: none;
+  flex-shrink: 0;
 }
 .logo-icon { width: 20px; height: 20px; color: var(--pri); }
 .sep { width: 1px; height: 26px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
-.toolbar-group { display: flex; align-items: center; gap: 2px; }
+.toolbar-group { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 
 .tbtn {
   height: 32px; padding: 0 10px;
@@ -89,6 +93,9 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .tbtn.icon-only { padding: 0 8px; }
 .tbtn-primary { background: var(--pri); color: #fff; border-color: var(--pri); font-weight: 600; }
 .tbtn-primary:hover { background: var(--pri-h); }
+.current-color-chip { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border-s); background: #ffd400; display: inline-block; margin: 0 5px 0 3px; flex-shrink: 0; }
+.current-color-chip.flash { animation: colorFlash .7s ease; }
+@keyframes colorFlash { 0% { transform: scale(1); box-shadow: 0 0 0 1px var(--border-s); } 45% { transform: scale(1.18); box-shadow: 0 0 0 5px rgba(215,25,32,.18); } 100% { transform: scale(1); box-shadow: 0 0 0 1px var(--border-s); } }
 #btnTheme svg { width: 16px; height: 16px; }
 [data-theme="dark"] #btnTheme .theme-moon { display: none; }
 [data-theme="light"] #btnTheme .theme-sun { display: none; }
@@ -120,11 +127,12 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 
 /* ===== Sidebar ===== */
 .sidebar { width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-.sidebar-head { padding: 12px 12px 8px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.sidebar-head { padding: 12px 12px 8px; display: flex; flex-direction: column; align-items: stretch; gap: 8px; border-bottom: 1px solid var(--border); }
 .sidebar-head h2 { font-size: 11px; font-weight: 700; color: var(--txt3); text-transform: uppercase; letter-spacing: .6px; }
-.sidebar-actions { display: flex; gap: 3px; flex-wrap: wrap; }
-.sb-icon-btn { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--tr); color: var(--txt3); }
+.sidebar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.sb-icon-btn { height: 30px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: flex-start; gap: 5px; padding: 0 7px; transition: all var(--tr); color: var(--txt3); font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; }
 .sb-icon-btn svg { width: 13px; height: 13px; }
+.sb-icon-btn .sb-label { overflow: hidden; text-overflow: ellipsis; }
 .sb-icon-btn:hover { background: var(--bg); border-color: var(--border-s); color: var(--txt2); }
 .sb-icon-btn.active { background: var(--pri-l); border-color: rgba(215,25,32,.25); color: var(--pri); }
 .sb-icon-btn.danger:hover { background: rgba(255,107,107,.13); border-color: rgba(255,107,107,.4); color: var(--red); }
@@ -247,6 +255,26 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.95); } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.95); } }
 
+/* ===== File protocol warning ===== */
+.file-warning { display: none; position: fixed; inset: 0; z-index: 1200; background: rgba(243,243,243,.96); color: #1f1f1f; align-items: center; justify-content: center; padding: 24px; }
+[data-theme="dark"] .file-warning { background: rgba(32,33,36,.96); color: #f1f3f4; }
+.file-warning.show { display: flex; }
+.file-warning-box { width: min(560px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-xl); padding: 24px; }
+.file-warning-box h2 { font-size: 18px; margin-bottom: 12px; }
+.file-warning-box p { color: var(--txt2); line-height: 1.7; margin-bottom: 12px; }
+.file-warning-box code { display: block; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--txt); margin-bottom: 12px; }
+.file-warning-box a { color: var(--pri); font-weight: 700; text-decoration: none; }
+
+@media (max-width: 1440px) {
+  .header { padding: 0 8px; }
+  .doc-title { max-width: 160px; }
+  .edit-tools .tbtn:not(.icon-only),
+  .file-actions #btnSave,
+  .file-actions #btnSaveAs {
+    width: 34px; padding: 0 8px; gap: 0; font-size: 0;
+  }
+}
+
 /* ===== Engine loading overlay ===== */
 .engine-loading { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
   background: var(--bg); transition: opacity .35s ease; }
@@ -276,7 +304,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   </div>
   <div class="sep"></div>
 
-  <div class="toolbar-group">
+  <div class="toolbar-group file-actions">
     <button class="tbtn tbtn-primary" onclick="openFile()" title="開く">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>開く
     </button>
@@ -315,17 +343,18 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   <div class="sep"></div>
 
   <!-- Edit tools -->
-  <div class="toolbar-group">
-    <button class="tbtn tool" data-tool="select" onclick="setTool('select')" title="選択（画像や図形をクリックして移動・リサイズ）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>選択</button>
+  <div class="toolbar-group edit-tools">
+    <button class="tbtn tool" data-tool="select" onclick="setTool('select')" title="オブジェクト選択（画像・図形・追加文字を移動/リサイズ）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>オブジェクト</button>
     <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集（ページ上の文字をダブルクリックでも可）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
     <button class="tbtn tool" data-tool="addText" onclick="setTool('addText')" title="テキスト追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>文字</button>
     <button class="tbtn tool" data-tool="addImage" onclick="setTool('addImage')" title="画像挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>画像</button>
     <button class="tbtn tool icon-only" data-tool="eyedropper" onclick="setTool('eyedropper')" title="スポイト（ページ上の色を取得）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 3l2 2-8.5 8.5-3 1 1-3L19 3z"/><path d="M14 4l6 6"/><path d="M5 19c1.8-3.8 4.2-5.8 7.5-5.5"/><path d="M4 21h7"/></svg></button>
+    <span class="current-color-chip" id="currentColorChip" title="現在の色"></span>
   </div>
   <div class="sep"></div>
 
   <!-- Markup tools -->
-  <div class="toolbar-group">
+  <div class="toolbar-group markup-tools">
     <button class="tbtn tool icon-only" data-tool="highlight" onclick="setTool('highlight')" title="ハイライト"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-4 4v3h3l4-4"/><path d="M22 2l-7 7-4-4 7-7z" transform="translate(-2 4)"/><line x1="3" y1="22" x2="21" y2="22"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="underline" onclick="setTool('underline')" title="下線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="strikeout" onclick="setTool('strikeout')" title="取り消し線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M6 5h12M9 5v4M15 19a5 5 0 0 1-6 0"/></svg></button>
@@ -337,7 +366,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   <div class="sep"></div>
 
   <!-- Shape tools -->
-  <div class="toolbar-group">
+  <div class="toolbar-group shape-tools">
     <button class="tbtn tool icon-only" data-tool="rect" onclick="setTool('rect')" title="四角"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="ellipse" onclick="setTool('ellipse')" title="楕円"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="8"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="line" onclick="setTool('line')" title="直線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg></button>
@@ -358,6 +387,15 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   </div>
 </header>
 
+<div class="file-warning" id="fileWarning">
+  <div class="file-warning-box">
+    <h2>HTTP経由で開いてください</h2>
+    <p>このブラウザ版はPDFエンジンとWASMを使うため、ファイルを直接開く `file://` では正常に動きません。</p>
+    <code>cd web && python3 -m http.server 8000</code>
+    <p><a href="http://localhost:8000/">http://localhost:8000/ を開く</a></p>
+  </div>
+</div>
+
 <!-- Tool options bar -->
 <div class="tool-options" id="toolOptions">
   <span class="to-label" id="toLabel">ツール</span>
@@ -373,12 +411,12 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
     <div class="sidebar-head">
       <h2>ページ</h2>
       <div class="sidebar-actions">
-        <button class="sb-icon-btn" onclick="toggleSelectMode()" title="選択モード" id="btnSelectMode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
-        <button class="sb-icon-btn" onclick="rotateCurrent()" title="90°回転"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
-        <button class="sb-icon-btn" onclick="importPdf()" title="別PDFを挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></button>
-        <button class="sb-icon-btn" onclick="extractPages()" title="選択ページを書き出し"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
-        <button class="sb-icon-btn" onclick="addPage()" title="空白ページ追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-        <button class="sb-icon-btn danger" onclick="deletePage()" title="ページ削除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        <button class="sb-icon-btn" onclick="toggleSelectMode()" title="ページ選択" id="btnSelectMode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="sb-label">ページ選択</span></button>
+        <button class="sb-icon-btn" onclick="rotateCurrent()" title="表示中ページを90°回転"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span class="sb-label">回転</span></button>
+        <button class="sb-icon-btn" onclick="importPdf()" title="別PDFを挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg><span class="sb-label">PDF挿入</span></button>
+        <button class="sb-icon-btn" onclick="extractPages()" title="選択ページを書き出し"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="sb-label">書き出し</span></button>
+        <button class="sb-icon-btn" onclick="addPage()" title="空白ページ追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="sb-label">追加</span></button>
+        <button class="sb-icon-btn danger" onclick="deletePage()" title="ページ削除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="sb-label">削除</span></button>
       </div>
     </div>
     <div class="page-list" id="pageList"></div>
@@ -424,6 +462,7 @@ const S = {
   pages: 0, cur: 0, zoom: 2, mode: null,
   filename: null, hasPath: false, dirty: false,
   toolColor: '#ffd400', toolWidth: 2, toolFill: false,
+  customToolColor: false,
   draw: null,                 // transient drag/ink state
   sel: null,                  // selected annotation: { page, xref, kind, rect:[x0,y0,x1,y1] }
   panel: null,                // 'search' | 'forms' | null
@@ -470,7 +509,7 @@ function fontSelectHtml(id, sel = 'jp') {
   return `<select id="${id}" class="font-select">${opts}</select>`;
 }
 function fontPickerHtml(id, sel = 'jp') {
-  return `${fontSelectHtml(id, sel)}<button type="button" class="mini-btn font-add-btn" data-font-target="${escAttr(id)}">追加</button>`;
+  return `${fontSelectHtml(id, sel)}<button type="button" class="mini-btn font-add-btn" data-font-target="${escAttr(id)}" title="ttf/otf/ttc/otc を追加">PCフォント追加</button>`;
 }
 function localFontId(f) {
   return 'local:' + encodeURIComponent(f.postscriptName || `${f.family}-${f.style}-${f.fullName}`);
@@ -539,6 +578,17 @@ document.addEventListener('click', e => {
   if (!btn) return;
   pickFontFiles(btn.dataset.fontTarget);
 });
+function updateCurrentColorChip(flash = false) {
+  const chip = $('#currentColorChip');
+  if (!chip) return;
+  chip.style.background = S.toolColor;
+  chip.title = `現在の色 ${S.toolColor}`;
+  if (flash) {
+    chip.classList.remove('flash');
+    void chip.offsetWidth;
+    chip.classList.add('flash');
+  }
+}
 async function prepareTextFont(fontId) {
   await engineReady;
   if (fontId && fontId.startsWith('local:') && !registeredLocalFonts.has(fontId)) {
@@ -564,6 +614,9 @@ const thumbUrls = {};   // page idx -> object URL (revoked on invalidate)
 let mainUrl = null;     // current main-page object URL
 
 const engineReady = (async () => {
+  if (location.protocol === 'file:') {
+    $('#fileWarning')?.classList.add('show');
+  }
   const mupdf = await import('./mupdf.js');
   const { createEngine } = await import('./pdf-engine.js');
   engine = createEngine(mupdf);
@@ -771,13 +824,14 @@ edArea.addEventListener('drop', async e => {
   await loadPdf(f);
 });
 
-// ── Selection mode ──
+// ── Page selection mode ──
 function toggleSelectMode() {
   selectMode = !selectMode;
   selectedPages.clear();
   $('#sidebar').classList.toggle('select-mode', selectMode);
   $('#btnSelectMode').classList.toggle('active', selectMode);
   renderPageList();
+  toast(selectMode ? 'ページ選択を開始しました' : 'ページ選択を終了しました', 'info');
 }
 
 // ── Page list (drag reorder) ──
@@ -1050,22 +1104,24 @@ function setTool(tool) {
 
   // tool options bar
   const opts = $('#toolOptions');
-  const showOpts = DRAG_TOOLS.includes(tool) || tool === 'ink' || tool === 'note';
+  const showOpts = DRAG_TOOLS.includes(tool) || tool === 'ink' || tool === 'note' || tool === 'eyedropper';
   opts.classList.toggle('show', showOpts);
   $('#mainLayout').classList.toggle('has-options', showOpts);
   if (showOpts) {
     $('#toLabel').textContent = TOOL_LABELS[tool] || 'ツール';
-    if (DEFAULT_COLORS[tool]) { S.toolColor = DEFAULT_COLORS[tool]; $('#toColor').value = S.toolColor; }
+    if (DEFAULT_COLORS[tool] && !S.customToolColor) S.toolColor = DEFAULT_COLORS[tool];
+    $('#toColor').value = S.toolColor;
+    updateCurrentColorChip();
     const isShape = ['rect', 'ellipse'].includes(tool);
-    $('#toWidthWrap').style.display = (tool === 'note' || tool === 'highlight') ? 'none' : 'flex';
+    $('#toWidthWrap').style.display = (tool === 'note' || tool === 'highlight' || tool === 'eyedropper') ? 'none' : 'flex';
     $('#toFillWrap').style.display = isShape ? 'flex' : 'none';
   }
   applyToolCursor();
   const hint = tool === 'note' ? 'ページ上をクリックしてコメントを配置' :
                tool === 'ink' ? 'ページ上でドラッグして手書き' :
                tool === 'addText' ? 'ページ上をクリックして配置' :
-               tool === 'select' ? '画像や図形をクリックして選択 → ドラッグで移動・四隅でリサイズ（Deleteで削除）' :
-               tool === 'eyedropper' ? 'ページ上の色をクリックして取得' :
+               tool === 'select' ? '画像・図形・追加文字をクリックして選択 → ドラッグで移動・四隅でリサイズ' :
+               tool === 'eyedropper' ? 'ページ上の色をクリックして現在色に設定' :
                tool === 'erase' ? '削除したい注釈（ハイライト/手書き/コメント等）をクリック' :
                DRAG_TOOLS.includes(tool) ? 'ページ上でドラッグ' : '';
   if (hint) toast(hint, 'info');
@@ -1088,9 +1144,10 @@ function applyToolCursor() {
   else stage.classList.add('tool-draw');
 }
 // tool options listeners
-$('#toColor').addEventListener('input', e => S.toolColor = e.target.value);
+$('#toColor').addEventListener('input', e => { S.toolColor = e.target.value; S.customToolColor = true; updateCurrentColorChip(); });
 $('#toWidth').addEventListener('input', e => { S.toolWidth = +e.target.value; $('#toWidthVal').textContent = e.target.value; });
 $('#toFill').addEventListener('change', e => S.toolFill = e.target.checked);
+updateCurrentColorChip();
 // Click the page indicator to jump to a specific page.
 $('#pageIndicator').addEventListener('click', () => {
   if (S.pages === 0) return;
@@ -1119,7 +1176,7 @@ async function showAddTextDialog(x, y) {
     <textarea id="dlgAddText" placeholder="テキストを入力..."></textarea>
     <div class="dialog-row"><label>フォント:</label>${fontPickerHtml('dlgAddFont')}</div>
     <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgAddSize" value="14" min="4" max="200" step="0.5">
-      <label>色:</label><input type="color" id="dlgAddColor" value="#000000"></div>
+      <label>色:</label><input type="color" id="dlgAddColor" value="${escAttr(S.toolColor)}"></div>
     <label class="to-chk"><input type="checkbox" id="dlgAddBg"> 下地を白で塗る（下の文字を隠して上書き）</label>`,
     async (root) => {
       const text = root.querySelector('#dlgAddText').value;
@@ -1164,7 +1221,9 @@ function pickColorAt(p) {
     const d = ctx.getImageData(px, py, 1, 1).data;
     const hex = rgbToHex255(d[0], d[1], d[2]);
     S.toolColor = hex;
+    S.customToolColor = true;
     $('#toColor').value = hex;
+    updateCurrentColorChip(true);
     clearTool();
     toast(`色を取得しました: ${hex}`, 'ok');
   } catch (e) {
@@ -1484,7 +1543,7 @@ async function importPdf() {
 }
 async function extractPages() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  if (!selectMode || selectedPages.size === 0) { toast('選択モードでページを選んでください', 'info'); return; }
+  if (!selectMode || selectedPages.size === 0) { toast('ページ選択で書き出すページを選んでください', 'info'); return; }
   try {
     const j = await api('/api/extract', { pages: [...selectedPages] });
     downloadBytes(j.bytes, 'extracted.pdf');
