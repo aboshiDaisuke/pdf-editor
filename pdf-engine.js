@@ -36,9 +36,74 @@ export function createEngine(mupdf) {
   // Coerce to a number, but only fall back when the value is genuinely absent or
   // non-numeric — a legitimate 0 (e.g. a zero border width) must be preserved.
   const numOr = (v, def) => { const n = Number(v); return (v == null || v === "" || Number.isNaN(n)) ? def : n; };
-  // CJK-aware text-width estimate (≈1em per wide glyph, narrower for latin).
-  const estTextWidth = (text, size) =>
-    [...text].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e7f ? size : size * 0.62), 0);
+  const textLines = (text) => String(text ?? "").replace(/\r\n?/g, "\n").split("\n");
+  const spanH = (s) => Math.max(0.1, s.bbox[3] - s.bbox[1]);
+  const sameVisualLine = (line, s) => {
+    const h = spanH(s), cy = (s.bbox[1] + s.bbox[3]) / 2;
+    const overlap = Math.min(line.y1, s.bbox[3]) - Math.max(line.y0, s.bbox[1]);
+    return overlap >= Math.min(line.h, h) * 0.35 || Math.abs(cy - line.cy) <= Math.max(2, Math.max(line.h, h) * 0.55);
+  };
+  const needsJoinSpace = (left, right, gap, size) => {
+    if (gap <= Math.max(1, size * 0.45)) return false;
+    if (!left || !right || /\s$/.test(left) || /^\s/.test(right)) return false;
+    return /^[\x00-\x7f]$/.test(left.at(-1)) && /^[\x00-\x7f]$/.test(right[0]) &&
+      /[0-9A-Za-z]/.test(left.at(-1)) && /[0-9A-Za-z]/.test(right[0]);
+  };
+  function mergeTextSpans(raw) {
+    if (!raw.length) return [];
+    const items = [...raw].sort((a, b) =>
+      ((a.bbox[1] + a.bbox[3]) / 2 - (b.bbox[1] + b.bbox[3]) / 2) || (a.bbox[0] - b.bbox[0]));
+    const lines = [];
+    for (const s of items) {
+      let line = lines.find((l) => sameVisualLine(l, s));
+      if (!line) {
+        const h = spanH(s);
+        line = { chunks: [], y0: s.bbox[1], y1: s.bbox[3], cy: (s.bbox[1] + s.bbox[3]) / 2, h };
+        lines.push(line);
+      }
+      line.chunks.push(s);
+      line.y0 = Math.min(line.y0, s.bbox[1]);
+      line.y1 = Math.max(line.y1, s.bbox[3]);
+      line.cy = (line.y0 + line.y1) / 2;
+      line.h = Math.max(line.h, spanH(s));
+    }
+    const merged = [];
+    for (const line of lines.sort((a, b) => a.cy - b.cy)) {
+      const chunks = line.chunks.sort((a, b) => a.bbox[0] - b.bbox[0]);
+      const runs = [];
+      let cur = [], last = null;
+      for (const s of chunks) {
+        if (last) {
+          const gap = s.bbox[0] - last.bbox[2];
+          const limit = Math.max(8, Math.max(last.size, s.size) * 2);
+          if (gap > limit) { runs.push(cur); cur = []; }
+        }
+        cur.push(s);
+        last = s;
+      }
+      if (cur.length) runs.push(cur);
+      for (const run of runs) {
+        let text = "";
+        last = null;
+        for (const s of run) {
+          if (last && needsJoinSpace(text, s.text, s.bbox[0] - last.bbox[2], Math.max(last.size, s.size))) text += " ";
+          text += s.text;
+          last = s;
+        }
+        if (!text.trim()) continue;
+        const bbox = [
+          Math.min(...run.map((s) => s.bbox[0])),
+          Math.min(...run.map((s) => s.bbox[1])),
+          Math.max(...run.map((s) => s.bbox[2])),
+          Math.max(...run.map((s) => s.bbox[3])),
+        ];
+        const first = run[0];
+        merged.push({ text, size: Math.max(...run.map((s) => s.size)), font: first.font,
+          color: first.color, bbox, dbox: bbox, origin: first.origin, parts: run.length });
+      }
+    }
+    return merged;
+  }
 
   function rgbToHex(c) {
     if (!c || c.length < 3) return "#000000";
@@ -164,37 +229,23 @@ export function createEngine(mupdf) {
   }
   function getTextForPage(page) {
     const st = page.toStructuredText("preserve-whitespace");
-    const spans = [];
-    let cur = null;
-    const flush = () => { if (cur && cur.text.trim()) spans.push(cur); cur = null; };
+    const raw = [];
     st.walk({
-      beginLine() { flush(); },
       onChar(c, origin, font, size, quad, color) {
         const hexc = rgbToHex(color);
-        const key = font.getName() + "|" + Math.round(size * 10) + "|" + hexc;
-        if (!cur || cur.key !== key) {
-          flush();
-          cur = {
-            key, text: "", size: Math.round(size * 10) / 10, font: font.getName(),
-            color: hexc, origin: [origin[0], origin[1]],
-            x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity,
-          };
-        }
-        cur.text += c;
         const xs = [quad[0], quad[2], quad[4], quad[6]], ys = [quad[1], quad[3], quad[5], quad[7]];
-        cur.x0 = Math.min(cur.x0, ...xs); cur.x1 = Math.max(cur.x1, ...xs);
-        cur.y0 = Math.min(cur.y0, ...ys); cur.y1 = Math.max(cur.y1, ...ys);
+        raw.push({
+          text: c,
+          size: Math.round(size * 10) / 10,
+          font: font.getName(),
+          color: hexc,
+          bbox: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
+          origin: [origin[0], origin[1]],
+        });
       },
-      endLine() { flush(); },
     });
-    flush();
     st.destroy();
-    return {
-      spans: spans.map((s) => {
-        const bbox = [s.x0, s.y0, s.x1, s.y1];
-        return { text: s.text, size: s.size, font: s.font, color: s.color, bbox, dbox: bbox, origin: s.origin };
-      }),
-    };
+    return { spans: mergeTextSpans(raw) };
   }
 
   // Collect glyph quads whose centre falls inside a drag box (so markup hugs text).
@@ -212,21 +263,38 @@ export function createEngine(mupdf) {
     return quads;
   }
 
-  // ── Real text insertion into the page content stream ────────────────────
-  // FreeText annotations could only use the base-14 fonts (so no Japanese) and
-  // mupdf lays them out inside a padded rect, never on the requested baseline.
-  // Instead we embed a real font and draw glyphs straight into /Contents at the
-  // exact display baseline — matching the desktop build's page.insert_text().
-  //
-  // Selectable/searchable text is preserved: addFont() embeds a CID font with
-  // Identity encoding (so the content-stream code == glyph id) plus a ToUnicode
-  // map, and subsetFonts() on save trims the embedded program to used glyphs.
+  // ── Real text insertion / movable text appearance ───────────────────────
+  // Existing-text edits redraw into the page stream at the original baseline.
+  // Newly added text is a FreeText annotation with a custom appearance so it can
+  // be moved/resized while still using embedded CJK/local fonts.
   const FONT_SPECS = {
     jp:    { arg: "ja",          res: "FEjp" },     // Droid Sans Fallback (CJK + latin)
     sans:  { arg: "Helvetica",   res: "FEsans" },
     serif: { arg: "Times-Roman", res: "FEserif" },
     mono:  { arg: "Courier",     res: "FEmono" },
   };
+  const localFonts = new Map();
+  function hashString(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16);
+  }
+  function registerFont(id, label, data) {
+    if (!id || !data) return;
+    localFonts.set(id, { label: label || id, data });
+  }
+  function listFonts() {
+    return [
+      { id: "jp", label: "日本語（自動）", source: "app" },
+      { id: "sans", label: "Helvetica", source: "builtin" },
+      { id: "serif", label: "Times Roman", source: "builtin" },
+      { id: "mono", label: "Courier", source: "builtin" },
+      ...[...localFonts.entries()].map(([id, f]) => ({ id, label: f.label, source: "system" })),
+    ];
+  }
   // Embedded fonts live in the document, so cache per-document (a new doc from
   // open/undo/redo gets a fresh entry; the old one is GC'd with its document).
   const fontCache = new WeakMap();
@@ -235,9 +303,17 @@ export function createEngine(mupdf) {
     if (!perDoc) { perDoc = new Map(); fontCache.set(doc, perDoc); }
     let ent = perDoc.get(fontKey);
     if (!ent) {
-      const spec = FONT_SPECS[fontKey] || FONT_SPECS.jp;
-      const font = new mupdf.Font(spec.arg);
-      ent = { font, ref: doc.addFont(font), name: spec.res };
+      let font, res;
+      if (fontKey && localFonts.has(fontKey)) {
+        const spec = localFonts.get(fontKey);
+        font = new mupdf.Font(spec.label || "LocalFont", spec.data);
+        res = "FElocal" + hashString(fontKey);
+      } else {
+        const spec = FONT_SPECS[fontKey] || FONT_SPECS.jp;
+        font = new mupdf.Font(spec.arg);
+        res = spec.res;
+      }
+      ent = { font, ref: doc.addFont(font), name: res };
       perDoc.set(fontKey, ent);
     }
     return ent;
@@ -258,13 +334,9 @@ export function createEngine(mupdf) {
     const ent = embedFont(doc, fontKey);
 
     // Encode to glyph ids (Identity-encoded CID font: code == gid) + measure.
-    let hex = "", width = 0;
-    for (const ch of [...text]) {
-      const gid = ent.font.encodeCharacter(ch.codePointAt(0));
-      hex += gid.toString(16).padStart(4, "0");
-      width += ent.font.advanceGlyph(gid);
-    }
-    width *= size;
+    const lines = textLines(text);
+    const encoded = lines.map((line) => encodeLine(ent.font, line));
+    const width = Math.max(0, ...encoded.map((l) => l.width * size));
 
     // Register the font in the page's resources (inheritable-aware so we never
     // shadow resources the existing content already relies on).
@@ -279,8 +351,11 @@ export function createEngine(mupdf) {
     // then flip Y (display space is y-down, PDF text space is y-up).
     const cm = invertAffine(page.getTransform()).map(fmt).join(" ");
     const [cr, cg, cb] = col(color);
+    const lineHeight = size * 1.22;
+    const commands = encoded.map((line, i) =>
+      `1 0 0 -1 ${fmt(dx)} ${fmt(dy + i * lineHeight)} Tm <${line.hex}> Tj`).join(" ");
     const stream = `q ${cm} cm BT /${ent.name} ${fmt(size)} Tf ` +
-      `${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg 1 0 0 -1 ${fmt(dx)} ${fmt(dy)} Tm <${hex}> Tj ET Q`;
+      `${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg ${commands} ET Q`;
 
     const buf = new mupdf.Buffer();
     buf.writeLine(stream);
@@ -298,6 +373,58 @@ export function createEngine(mupdf) {
     pd.put("Contents", arr);
     page.update();
     return width;
+  }
+
+  function encodeLine(font, text) {
+    let hex = "", width = 0;
+    for (const ch of [...String(text ?? "")]) {
+      const gid = font.encodeCharacter(ch.codePointAt(0));
+      hex += gid.toString(16).padStart(4, "0");
+      width += font.advanceGlyph(gid);
+    }
+    return { hex, width };
+  }
+
+  function textMetrics(font, text, size) {
+    const lines = textLines(text);
+    const widths = lines.map((line) => encodeLine(font, line).width * size);
+    const lineHeight = size * 1.22;
+    return {
+      lines,
+      widths,
+      lineHeight,
+      width: Math.max(1, ...widths),
+      height: Math.max(size, lines.length * lineHeight),
+    };
+  }
+
+  function setTextAppearance(doc, annot, text, size, color, bg, fontKey) {
+    const ent = embedFont(doc, fontKey);
+    const m = textMetrics(ent.font, text, size);
+    const pad = Math.max(3, size * 0.22);
+    const w = m.width + pad * 2;
+    const h = m.height + pad * 2;
+    const resources = doc.newDictionary();
+    const fonts = doc.newDictionary();
+    fonts.put(ent.name, ent.ref);
+    resources.put("Font", fonts);
+    const [cr, cg, cb] = col(color);
+    const chunks = [];
+    if (bg) {
+      const [br, bgc, bb] = bg === true || bg === "white" ? [1, 1, 1] : col(bg, [1, 1, 1]);
+      chunks.push(`q ${fmt(br)} ${fmt(bgc)} ${fmt(bb)} rg 0 0 ${fmt(w)} ${fmt(h)} re f Q`);
+    }
+    chunks.push(`BT /${ent.name} ${fmt(size)} Tf ${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg`);
+    textLines(text).forEach((line, i) => {
+      const enc = encodeLine(ent.font, line);
+      const y = h - pad - size - i * m.lineHeight;
+      chunks.push(`1 0 0 1 ${fmt(pad)} ${fmt(y)} Tm <${enc.hex}> Tj`);
+    });
+    chunks.push("ET");
+    const buf = new mupdf.Buffer();
+    buf.writeLine(chunks.join(" "));
+    annot.setAppearance("N", null, [1, 0, 0, 1, 0, 0], [0, 0, w, h], resources, buf);
+    return { w, h };
   }
 
   function editText(idx, bbox, origin, newText, fontSize, color, fontKey) {
@@ -331,20 +458,19 @@ export function createEngine(mupdf) {
     snapshot();
     return withPage(idx, (page) => {
       size = numOr(size, 14);
-      // Click point is the visual top-left; the text baseline sits `size` below.
-      const baseY = y + size;
-      if (bg && text) {
-        const est = estTextWidth(text, size);
-        const pad = size * 0.2;
-        const fill = bg === true || bg === "white" ? [1, 1, 1] : col(bg, [1, 1, 1]);
-        const sq = page.createAnnotation("Square");
-        sq.setRect([x - pad, y - pad, x + est + pad, y + size + pad]);
-        sq.setInteriorColor(fill);
-        sq.setBorderWidth(0);
-        try { sq.setColor([]); } catch (e) {}
-        sq.update();
-      }
-      insertText(state.doc, page, x, baseY, text, size, color, fontKey || "jp");
+      const doc = state.doc;
+      const ent = embedFont(doc, fontKey || "jp");
+      const m = textMetrics(ent.font, text, size);
+      const pad = Math.max(3, size * 0.22);
+      const w = m.width + pad * 2;
+      const h = m.height + pad * 2;
+      const a = page.createAnnotation("FreeText");
+      a.setRect([x, y, x + w, y + h]);
+      a.setContents(text || "");
+      try { a.setDefaultAppearance("Helv", size, col(color)); } catch (e) {}
+      try { a.setBorderWidth(0); } catch (e) {}
+      a.update();
+      setTextAppearance(doc, a, text, size, color, bg, fontKey || "jp");
       return status();
     });
   }
@@ -540,8 +666,8 @@ export function createEngine(mupdf) {
   function rotate(pages, dir) {
     const doc = requireDoc();
     const step = (Number(dir) >= 0 ? 90 : -90);
-    const targets = pages == null ? [...Array(doc.countPages()).keys()]
-      : pages.filter((p) => p >= 0 && p < doc.countPages());
+    const targets = Array.isArray(pages) ? [...new Set(pages)].filter((p) => p >= 0 && p < doc.countPages()) : [];
+    if (!targets.length) return status();
     snapshot();
     for (const p of targets) {
       withPage(p, (page) => {
@@ -690,6 +816,7 @@ export function createEngine(mupdf) {
 
   return {
     open, renderPNG, pageSizePts, getText, editText, addText, addImage, drawShape,
+    listFonts, registerFont,
     addAnnot, listAnnots, deleteAnnot, setAnnotRect, addPage, deletePage, deletePages, movePage,
     rotate, importPdf, extract, search, getWidgets, setWidget, undo, redo, save, status,
     _state: state,
