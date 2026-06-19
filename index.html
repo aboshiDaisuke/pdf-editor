@@ -1,42 +1,40 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="dark">
+<html lang="ja" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PDF Editor</title>
-<script>(function(){try{var t=localStorage.getItem('pdfEditorTheme');if(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)t='light';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="icon" href="data:,">
+<script>(function(){try{var t=localStorage.getItem('pdfEditorTheme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  /* Professional dark chrome with a periwinkle accent + light document canvas feel */
-  --pri: #7c8cff; --pri-h: #99a4ff; --pri-l: rgba(124,140,255,.16);
+  --pri: #d71920; --pri-h: #b9151b; --pri-l: rgba(215,25,32,.10);
   --red: #ff6b6b; --green: #34d399; --amber: #fbbf24;
-  --radius: 8px; --radius-lg: 12px;
+  --radius: 6px; --radius-lg: 8px;
   --tr: 150ms ease;
-  /* ── Dark theme (default — unchanged look) ── */
-  --bg: #16191f; --surface: #1e222b; --surface-h: #2a2f3a;
-  --elev: #2a2f3a;
-  --border: #2c313b; --border-s: #3c4350;
-  --txt: #e9ebf1; --txt2: #9aa1b1; --txt3: #646b7b;
+  --bg: #202124; --surface: #2b2d30; --surface-h: #34363a;
+  --elev: #34363a;
+  --border: #3d4045; --border-s: #555a62;
+  --txt: #f1f3f4; --txt2: #bdc1c6; --txt3: #8f949b;
   --shadow: 0 1px 2px rgba(0,0,0,.5);
   --shadow-md: 0 4px 12px rgba(0,0,0,.5);
   --shadow-lg: 0 18px 44px rgba(0,0,0,.58);
   --shadow-xl: 0 28px 64px rgba(0,0,0,.66);
-  --sb-thumb: #3a4150; --sb-thumb-h: #4a5364;
-  --sel: rgba(124,140,255,.32);
+  --sb-thumb: #555a62; --sb-thumb-h: #6b7078;
+  --sel: rgba(215,25,32,.22);
 }
-/* ── Light theme (white & black) ── */
 [data-theme="light"] {
-  --bg: #eceef3; --surface: #ffffff; --surface-h: #f4f5f8;
+  --bg: #f3f3f3; --surface: #ffffff; --surface-h: #f7f7f7;
   --elev: #ffffff;
-  --border: #e4e7ee; --border-s: #cfd5df;
-  --txt: #1b1f27; --txt2: #586173; --txt3: #8a93a4;
-  --shadow: 0 1px 2px rgba(16,24,40,.08);
-  --shadow-md: 0 4px 14px rgba(16,24,40,.10);
-  --shadow-lg: 0 16px 40px rgba(16,24,40,.14);
-  --shadow-xl: 0 28px 64px rgba(16,24,40,.18);
-  --sb-thumb: #cbd1dc; --sb-thumb-h: #b4bccb;
-  --sel: rgba(124,140,255,.26);
+  --border: #d9d9d9; --border-s: #b8bcc2;
+  --txt: #1f1f1f; --txt2: #53565a; --txt3: #85898f;
+  --shadow: 0 1px 2px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.10);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,.16);
+  --shadow-xl: 0 24px 56px rgba(0,0,0,.22);
+  --sb-thumb: #c8c8c8; --sb-thumb-h: #a8a8a8;
+  --sel: rgba(215,25,32,.18);
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Hiragino Sans", sans-serif;
@@ -64,15 +62,19 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   padding: 0 12px; gap: 2px;
   box-shadow: var(--shadow);
   position: relative; z-index: 100;
+  overflow-x: auto; overflow-y: hidden;
 }
+.header::-webkit-scrollbar { height: 4px; }
+.header::-webkit-scrollbar-thumb { background: var(--border-s); border-radius: 2px; border: 0; }
 .logo {
   display: flex; align-items: center; gap: 7px;
   font-size: 14px; font-weight: 700; letter-spacing: -0.3px;
   padding-right: 10px; color: var(--txt); user-select: none;
+  flex-shrink: 0;
 }
 .logo-icon { width: 20px; height: 20px; color: var(--pri); }
 .sep { width: 1px; height: 26px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
-.toolbar-group { display: flex; align-items: center; gap: 2px; }
+.toolbar-group { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 
 .tbtn {
   height: 32px; padding: 0 10px;
@@ -85,12 +87,15 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 }
 .tbtn:hover { background: var(--bg); color: var(--txt); }
 .tbtn:active { transform: scale(0.97); }
-.tbtn.active { background: var(--pri-l); color: var(--pri); border-color: rgba(124,140,255,.25); }
+.tbtn.active { background: var(--pri-l); color: var(--pri); border-color: rgba(215,25,32,.25); }
 .tbtn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
 .tbtn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .tbtn.icon-only { padding: 0 8px; }
 .tbtn-primary { background: var(--pri); color: #fff; border-color: var(--pri); font-weight: 600; }
 .tbtn-primary:hover { background: var(--pri-h); }
+.current-color-chip { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--border-s); background: #ffd400; display: inline-block; margin: 0 5px 0 3px; flex-shrink: 0; }
+.current-color-chip.flash { animation: colorFlash .7s ease; }
+@keyframes colorFlash { 0% { transform: scale(1); box-shadow: 0 0 0 1px var(--border-s); } 45% { transform: scale(1.18); box-shadow: 0 0 0 5px rgba(215,25,32,.18); } 100% { transform: scale(1); box-shadow: 0 0 0 1px var(--border-s); } }
 #btnTheme svg { width: 16px; height: 16px; }
 [data-theme="dark"] #btnTheme .theme-moon { display: none; }
 [data-theme="light"] #btnTheme .theme-sun { display: none; }
@@ -122,13 +127,14 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 
 /* ===== Sidebar ===== */
 .sidebar { width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-.sidebar-head { padding: 12px 12px 8px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.sidebar-head { padding: 12px 12px 8px; display: flex; flex-direction: column; align-items: stretch; gap: 8px; border-bottom: 1px solid var(--border); }
 .sidebar-head h2 { font-size: 11px; font-weight: 700; color: var(--txt3); text-transform: uppercase; letter-spacing: .6px; }
-.sidebar-actions { display: flex; gap: 3px; flex-wrap: wrap; }
-.sb-icon-btn { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--tr); color: var(--txt3); }
+.sidebar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.sb-icon-btn { height: 30px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: flex-start; gap: 5px; padding: 0 7px; transition: all var(--tr); color: var(--txt3); font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; }
 .sb-icon-btn svg { width: 13px; height: 13px; }
+.sb-icon-btn .sb-label { overflow: hidden; text-overflow: ellipsis; }
 .sb-icon-btn:hover { background: var(--bg); border-color: var(--border-s); color: var(--txt2); }
-.sb-icon-btn.active { background: var(--pri-l); border-color: rgba(124,140,255,.25); color: var(--pri); }
+.sb-icon-btn.active { background: var(--pri-l); border-color: rgba(215,25,32,.25); color: var(--pri); }
 .sb-icon-btn.danger:hover { background: rgba(255,107,107,.13); border-color: rgba(255,107,107,.4); color: var(--red); }
 
 .page-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
@@ -137,7 +143,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 
 .page-item { padding: 8px; border-radius: var(--radius); cursor: grab; font-size: 11px; font-weight: 600; color: var(--txt3); transition: transform .2s ease, box-shadow .2s ease, background .15s ease, border-color .15s ease; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; border: 2px solid transparent; }
 .page-item:hover { background: var(--surface-h); border-color: var(--border); }
-.page-item.active { border-color: var(--pri); background: var(--pri-l); color: var(--pri); box-shadow: 0 2px 8px rgba(124,140,255,.15); }
+.page-item.active { border-color: var(--pri); background: var(--pri-l); color: var(--pri); box-shadow: 0 2px 8px rgba(215,25,32,.15); }
 .page-item.dragging { opacity: 0.3; transform: scale(0.95); }
 .page-item.drag-over-top { border-top: 3px solid var(--pri); border-radius: 3px 3px var(--radius) var(--radius); }
 .page-item.drag-over-bottom { border-bottom: 3px solid var(--pri); border-radius: var(--radius) var(--radius) 3px 3px; }
@@ -147,7 +153,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .page-item .page-check:checked { background: var(--pri); border-color: var(--pri); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E"); background-size: 14px; background-position: center; background-repeat: no-repeat; }
 .sidebar.select-mode .page-item .page-check { display: block; }
 .sidebar.select-mode .page-item { padding-left: 28px; }
-.page-item.selected { background: var(--pri-l); border-color: rgba(124,140,255,.3); }
+.page-item.selected { background: var(--pri-l); border-color: rgba(215,25,32,.3); }
 
 .sidebar-footer { padding: 10px 8px; border-top: 1px solid var(--border); display: flex; gap: 4px; }
 .sidebar-footer button { flex: 1; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; font-size: 11px; font-weight: 500; color: var(--txt2); transition: all var(--tr); display: flex; align-items: center; justify-content: center; gap: 4px; }
@@ -156,26 +162,27 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 
 /* ===== Editor Area ===== */
 .editor-area { flex: 1; overflow: auto; background: var(--bg); display: flex; align-items: flex-start; justify-content: center; position: relative; }
-.editor-area.drag-over::after { content: ''; position: absolute; inset: 16px; border: 3px dashed var(--pri); border-radius: 16px; background: rgba(124,140,255,.04); pointer-events: none; z-index: 50; }
+.editor-area.drag-over::after { content: ''; position: absolute; inset: 16px; border: 3px dashed var(--pri); border-radius: 8px; background: rgba(215,25,32,.04); pointer-events: none; z-index: 50; }
 
 .empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; user-select: none; }
 .empty-state svg { width: 72px; height: 72px; color: var(--txt3); opacity: .3; margin-bottom: 12px; }
 .empty-state h2 { font-size: 18px; font-weight: 700; color: var(--txt2); }
 .empty-state p { font-size: 13px; color: var(--txt3); margin-bottom: 20px; }
-.btn-open { padding: 12px 32px; background: var(--pri); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--tr); box-shadow: 0 2px 8px rgba(124,140,255,.3); }
-.btn-open:hover { background: var(--pri-h); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,140,255,.4); }
+.btn-open { padding: 12px 32px; background: var(--pri); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--tr); box-shadow: 0 2px 8px rgba(215,25,32,.25); }
+.btn-open:hover { background: var(--pri-h); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(215,25,32,.32); }
 
 .page-display { padding: 32px; flex-shrink: 0; }
 .page-stage { position: relative; line-height: 0; }
 .page-canvas { box-shadow: var(--shadow-lg); border-radius: 3px; display: block; background: #fff; transition: box-shadow var(--tr); }
 .page-stage.tool-draw .page-canvas { cursor: crosshair; }
 .page-stage.tool-text .page-canvas { cursor: text; }
+.page-stage.tool-eyedropper .page-canvas { cursor: crosshair; }
 .overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
 .overlay .search-hit { fill: rgba(245,158,11,.35); stroke: var(--amber); stroke-width: 1; }
-.overlay .search-hit.current { fill: rgba(124,140,255,.4); stroke: var(--pri); stroke-width: 1.5; }
-.overlay .sel-box { fill: rgba(124,140,255,.10); stroke: var(--pri); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.overlay .search-hit.current { fill: rgba(215,25,32,.22); stroke: var(--pri); stroke-width: 1.5; }
+.overlay .sel-box { fill: rgba(215,25,32,.10); stroke: var(--pri); stroke-width: 1.5; stroke-dasharray: 6 4; }
 .overlay .sel-handle { fill: #fff; stroke: var(--pri); stroke-width: 1.5; }
-.overlay .prev.img-box { fill: rgba(124,140,255,.12); stroke: var(--pri); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.overlay .prev.img-box { fill: rgba(215,25,32,.12); stroke: var(--pri); stroke-width: 1.5; stroke-dasharray: 6 4; }
 .page-stage.tool-select .page-canvas { cursor: default; }
 
 /* ===== Right panel (search / forms) ===== */
@@ -201,36 +208,39 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .rp-empty { font-size: 12px; color: var(--txt3); text-align: center; padding: 30px 10px; }
 
 /* ===== Modal / Dialog ===== */
-.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.4); backdrop-filter: blur(4px); z-index: 500; display: flex; align-items: center; justify-content: center; animation: fadeIn .15s ease-out; }
-.modal { background: var(--surface); border-radius: 16px; width: 620px; max-width: calc(100vw - 40px); max-height: 80vh; display: flex; flex-direction: column; box-shadow: var(--shadow-xl); animation: modalIn .2s ease-out; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.36); z-index: 500; display: flex; align-items: center; justify-content: center; animation: fadeIn .15s ease-out; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 760px; max-width: calc(100vw - 40px); max-height: 82vh; display: flex; flex-direction: column; box-shadow: var(--shadow-xl); animation: modalIn .2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } }
 @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(8px); } }
 .modal-header { padding: 22px 26px 14px; display: flex; align-items: center; justify-content: space-between; }
 .modal-header h2 { font-size: 17px; font-weight: 700; }
-.modal-close { width: 32px; height: 32px; border: none; border-radius: 8px; background: var(--bg); cursor: pointer; font-size: 18px; color: var(--txt3); transition: all var(--tr); display: flex; align-items: center; justify-content: center; }
+.modal-close { width: 32px; height: 32px; border: 1px solid transparent; border-radius: 6px; background: transparent; cursor: pointer; font-size: 18px; color: var(--txt3); transition: all var(--tr); display: flex; align-items: center; justify-content: center; }
 .modal-close:hover { background: var(--border); color: var(--txt); }
 .modal-subtitle { padding: 0 26px 14px; font-size: 12px; color: var(--txt3); }
 .modal-body { flex: 1; overflow-y: auto; padding: 0 26px 18px; }
-.text-row { display: flex; align-items: center; padding: 10px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 6px; gap: 10px; transition: all var(--tr); border: 1px solid transparent; }
-.text-row:hover { background: var(--pri-l); border-color: rgba(124,140,255,.15); }
+.text-row { display: flex; align-items: center; min-height: 40px; padding: 8px 10px 8px 12px; background: var(--surface-h); border-radius: 6px; margin-bottom: 6px; gap: 10px; transition: all var(--tr); border: 1px solid var(--border); }
+.text-row:hover { background: var(--pri-l); border-color: rgba(215,25,32,.15); }
 .text-content { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--txt); }
 .text-meta { font-size: 10px; color: var(--txt3); font-weight: 600; padding: 2px 6px; background: var(--surface); border-radius: 4px; white-space: nowrap; }
-.text-edit-btn { padding: 6px 16px; border: none; border-radius: 6px; background: var(--pri); color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; transition: all var(--tr); white-space: nowrap; }
+.text-edit-btn { padding: 6px 14px; border: none; border-radius: 6px; background: var(--pri); color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; transition: all var(--tr); white-space: nowrap; }
 .text-edit-btn:hover { background: var(--pri-h); }
 .modal-footer { padding: 14px 26px 22px; text-align: right; border-top: 1px solid var(--border); }
 .modal-footer button { padding: 8px 22px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 500; color: var(--txt2); transition: all var(--tr); }
 .modal-footer button:hover { background: var(--bg); }
 
-.dialog-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.35); backdrop-filter: blur(3px); z-index: 600; display: flex; align-items: center; justify-content: center; animation: fadeIn .12s ease-out; }
-.dialog { background: var(--surface); border-radius: 14px; padding: 26px; width: 440px; max-width: calc(100vw - 40px); box-shadow: var(--shadow-xl); animation: modalIn .18s ease-out; }
+.dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.32); z-index: 600; display: flex; align-items: center; justify-content: center; animation: fadeIn .12s ease-out; }
+.dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; width: 480px; max-width: calc(100vw - 40px); box-shadow: var(--shadow-xl); animation: modalIn .18s ease-out; }
 .dialog h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-.dialog input[type="text"], .dialog textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; outline: none; transition: all var(--tr); margin-bottom: 8px; }
+.dialog input[type="text"], .dialog textarea, .dialog select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; outline: none; transition: all var(--tr); margin-bottom: 8px; }
 .dialog textarea { min-height: 90px; resize: vertical; }
-.dialog input[type="text"]:focus, .dialog textarea:focus { border-color: var(--pri); box-shadow: 0 0 0 3px rgba(124,140,255,.12); }
+.dialog input[type="text"]:focus, .dialog textarea:focus, .dialog select:focus { border-color: var(--pri); box-shadow: 0 0 0 3px rgba(215,25,32,.12); }
 .dialog-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
 .dialog-row label { font-size: 12px; font-weight: 600; color: var(--txt2); white-space: nowrap; }
 .dialog-row input[type="number"] { width: 70px; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
 .dialog-row input[type="color"] { width: 36px; height: 30px; border: 1.5px solid var(--border); border-radius: 6px; cursor: pointer; padding: 2px; }
+.dialog-row .font-select { flex: 1; min-width: 0; margin-bottom: 0; }
+.mini-btn { height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-h); color: var(--txt2); font-size: 12px; font-weight: 600; cursor: pointer; transition: all var(--tr); white-space: nowrap; }
+.mini-btn:hover { background: var(--bg); color: var(--txt); border-color: var(--border-s); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .dialog-actions button { padding: 9px 22px; border-radius: var(--radius); border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--tr); }
 .dialog-actions .btn-cancel { background: var(--bg); color: var(--txt2); }
@@ -244,6 +254,26 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .toast-ok { background: var(--green); } .toast-err { background: var(--red); } .toast-info { background: var(--pri); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.95); } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.95); } }
+
+/* ===== File protocol warning ===== */
+.file-warning { display: none; position: fixed; inset: 0; z-index: 1200; background: rgba(243,243,243,.96); color: #1f1f1f; align-items: center; justify-content: center; padding: 24px; }
+[data-theme="dark"] .file-warning { background: rgba(32,33,36,.96); color: #f1f3f4; }
+.file-warning.show { display: flex; }
+.file-warning-box { width: min(560px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-xl); padding: 24px; }
+.file-warning-box h2 { font-size: 18px; margin-bottom: 12px; }
+.file-warning-box p { color: var(--txt2); line-height: 1.7; margin-bottom: 12px; }
+.file-warning-box code { display: block; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--txt); margin-bottom: 12px; }
+.file-warning-box a { color: var(--pri); font-weight: 700; text-decoration: none; }
+
+@media (max-width: 1440px) {
+  .header { padding: 0 8px; }
+  .doc-title { max-width: 160px; }
+  .edit-tools .tbtn:not(.icon-only),
+  .file-actions #btnSave,
+  .file-actions #btnSaveAs {
+    width: 34px; padding: 0 8px; gap: 0; font-size: 0;
+  }
+}
 
 /* ===== Engine loading overlay ===== */
 .engine-loading { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
@@ -274,7 +304,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   </div>
   <div class="sep"></div>
 
-  <div class="toolbar-group">
+  <div class="toolbar-group file-actions">
     <button class="tbtn tbtn-primary" onclick="openFile()" title="開く">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>開く
     </button>
@@ -313,16 +343,18 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   <div class="sep"></div>
 
   <!-- Edit tools -->
-  <div class="toolbar-group">
-    <button class="tbtn tool" data-tool="select" onclick="setTool('select')" title="選択（画像や図形をクリックして移動・リサイズ）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>選択</button>
+  <div class="toolbar-group edit-tools">
+    <button class="tbtn tool" data-tool="select" onclick="setTool('select')" title="オブジェクト選択（画像・図形・追加文字を移動/リサイズ）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>オブジェクト</button>
     <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集（ページ上の文字をダブルクリックでも可）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
     <button class="tbtn tool" data-tool="addText" onclick="setTool('addText')" title="テキスト追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>文字</button>
     <button class="tbtn tool" data-tool="addImage" onclick="setTool('addImage')" title="画像挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>画像</button>
+    <button class="tbtn tool icon-only" data-tool="eyedropper" onclick="setTool('eyedropper')" title="スポイト（ページ上の色を取得）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 3l2 2-8.5 8.5-3 1 1-3L19 3z"/><path d="M14 4l6 6"/><path d="M5 19c1.8-3.8 4.2-5.8 7.5-5.5"/><path d="M4 21h7"/></svg></button>
+    <span class="current-color-chip" id="currentColorChip" title="現在の色"></span>
   </div>
   <div class="sep"></div>
 
   <!-- Markup tools -->
-  <div class="toolbar-group">
+  <div class="toolbar-group markup-tools">
     <button class="tbtn tool icon-only" data-tool="highlight" onclick="setTool('highlight')" title="ハイライト"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-4 4v3h3l4-4"/><path d="M22 2l-7 7-4-4 7-7z" transform="translate(-2 4)"/><line x1="3" y1="22" x2="21" y2="22"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="underline" onclick="setTool('underline')" title="下線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="strikeout" onclick="setTool('strikeout')" title="取り消し線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M6 5h12M9 5v4M15 19a5 5 0 0 1-6 0"/></svg></button>
@@ -334,7 +366,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   <div class="sep"></div>
 
   <!-- Shape tools -->
-  <div class="toolbar-group">
+  <div class="toolbar-group shape-tools">
     <button class="tbtn tool icon-only" data-tool="rect" onclick="setTool('rect')" title="四角"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="ellipse" onclick="setTool('ellipse')" title="楕円"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="8"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="line" onclick="setTool('line')" title="直線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg></button>
@@ -355,6 +387,15 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   </div>
 </header>
 
+<div class="file-warning" id="fileWarning">
+  <div class="file-warning-box">
+    <h2>HTTP経由で開いてください</h2>
+    <p>このブラウザ版はPDFエンジンとWASMを使うため、ファイルを直接開く `file://` では正常に動きません。</p>
+    <code>cd web && python3 -m http.server 8000</code>
+    <p><a href="http://localhost:8000/">http://localhost:8000/ を開く</a></p>
+  </div>
+</div>
+
 <!-- Tool options bar -->
 <div class="tool-options" id="toolOptions">
   <span class="to-label" id="toLabel">ツール</span>
@@ -370,12 +411,12 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
     <div class="sidebar-head">
       <h2>ページ</h2>
       <div class="sidebar-actions">
-        <button class="sb-icon-btn" onclick="toggleSelectMode()" title="選択モード" id="btnSelectMode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
-        <button class="sb-icon-btn" onclick="rotateCurrent()" title="90°回転"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
-        <button class="sb-icon-btn" onclick="importPdf()" title="別PDFを挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></button>
-        <button class="sb-icon-btn" onclick="extractPages()" title="選択ページを書き出し"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
-        <button class="sb-icon-btn" onclick="addPage()" title="空白ページ追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-        <button class="sb-icon-btn danger" onclick="deletePage()" title="ページ削除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        <button class="sb-icon-btn" onclick="toggleSelectMode()" title="ページ選択" id="btnSelectMode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="sb-label">ページ選択</span></button>
+        <button class="sb-icon-btn" onclick="rotateCurrent()" title="表示中ページを90°回転"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span class="sb-label">回転</span></button>
+        <button class="sb-icon-btn" onclick="importPdf()" title="別PDFを挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg><span class="sb-label">PDF挿入</span></button>
+        <button class="sb-icon-btn" onclick="extractPages()" title="選択ページを書き出し"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="sb-label">書き出し</span></button>
+        <button class="sb-icon-btn" onclick="addPage()" title="空白ページ追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="sb-label">追加</span></button>
+        <button class="sb-icon-btn danger" onclick="deletePage()" title="ページ削除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="sb-label">削除</span></button>
       </div>
     </div>
     <div class="page-list" id="pageList"></div>
@@ -421,6 +462,7 @@ const S = {
   pages: 0, cur: 0, zoom: 2, mode: null,
   filename: null, hasPath: false, dirty: false,
   toolColor: '#ffd400', toolWidth: 2, toolFill: false,
+  customToolColor: false,
   draw: null,                 // transient drag/ink state
   sel: null,                  // selected annotation: { page, xref, kind, rect:[x0,y0,x1,y1] }
   panel: null,                // 'search' | 'forms' | null
@@ -444,9 +486,120 @@ function hexToRgb01(h) {
   h = h.replace('#', '');
   return [parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255];
 }
+function rgbToHex255(r, g, b) {
+  const h = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function hasNative() { return false; }   // browser build — no pywebview / native dialogs
+
+const DEFAULT_TEXT_FONTS = [
+  ['jp', '日本語（自動）'], ['sans', 'Helvetica'],
+  ['serif', 'Times Roman'], ['mono', 'Courier'],
+];
+let TEXT_FONTS = DEFAULT_TEXT_FONTS.slice();
+let fontsLoaded = false;
+const localFontRecords = new Map();
+const registeredLocalFonts = new Set();
+const userTextFonts = [];
+function fontSelectHtml(id, sel = 'jp') {
+  const opts = TEXT_FONTS.map(([v, l]) =>
+    `<option value="${escAttr(v)}"${v === sel ? ' selected' : ''}>${escHtml(l)}</option>`).join('');
+  return `<select id="${id}" class="font-select">${opts}</select>`;
+}
+function fontPickerHtml(id, sel = 'jp') {
+  return `${fontSelectHtml(id, sel)}<button type="button" class="mini-btn font-add-btn" data-font-target="${escAttr(id)}" title="ttf/otf/ttc/otc を追加">PCフォント追加</button>`;
+}
+function localFontId(f) {
+  return 'local:' + encodeURIComponent(f.postscriptName || `${f.family}-${f.style}-${f.fullName}`);
+}
+async function ensureFontsLoaded() {
+  if (fontsLoaded) return TEXT_FONTS;
+  const localPromise = 'queryLocalFonts' in window
+    ? window.queryLocalFonts().catch(e => { console.warn('local font access unavailable', e); return []; })
+    : Promise.resolve([]);
+  await engineReady;
+  const localFonts = await localPromise;
+  const local = [];
+  const seen = new Set();
+  for (const f of localFonts) {
+    const id = localFontId(f);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    localFontRecords.set(id, f);
+    const style = f.style && !/^regular$/i.test(f.style) ? ` ${f.style}` : '';
+    local.push([id, `${f.family || f.fullName}${style}`]);
+  }
+  local.sort((a, b) => a[1].localeCompare(b[1], 'ja'));
+  TEXT_FONTS = DEFAULT_TEXT_FONTS.concat(local, userTextFonts);
+  fontsLoaded = true;
+  return TEXT_FONTS;
+}
+function addTextFontOption(id, label) {
+  if (TEXT_FONTS.some(([v]) => v === id)) return;
+  const opt = [id, label];
+  userTextFonts.push(opt);
+  TEXT_FONTS.push(opt);
+  document.querySelectorAll('.font-select').forEach(sel => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    sel.appendChild(option);
+  });
+}
+async function addFontFilesToPicker(files, targetId) {
+  await engineReady;
+  let lastId = null;
+  for (const file of files) {
+    if (!/\.(ttf|otf|ttc|otc)$/i.test(file.name || '')) continue;
+    const id = `file:${encodeURIComponent(file.name)}:${file.size}:${file.lastModified}`;
+    const label = (file.name || 'Custom Font').replace(/\.(ttf|otf|ttc|otc)$/i, '');
+    engine.registerFont(id, label, new Uint8Array(await file.arrayBuffer()));
+    registeredLocalFonts.add(id);
+    addTextFontOption(id, label);
+    lastId = id;
+  }
+  const sel = targetId ? document.getElementById(targetId) : null;
+  if (sel && lastId) sel.value = lastId;
+  if (lastId) toast('フォントを追加しました', 'ok');
+  else toast('対応フォント（ttf/otf/ttc/otc）を選んでください', 'err');
+}
+function pickFontFiles(targetId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.ttf,.otf,.ttc,.otc,font/*';
+  input.multiple = true;
+  input.onchange = () => addFontFilesToPicker(input.files || [], targetId);
+  input.click();
+}
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.font-add-btn');
+  if (!btn) return;
+  pickFontFiles(btn.dataset.fontTarget);
+});
+function updateCurrentColorChip(flash = false) {
+  const chip = $('#currentColorChip');
+  if (!chip) return;
+  chip.style.background = S.toolColor;
+  chip.title = `現在の色 ${S.toolColor}`;
+  if (flash) {
+    chip.classList.remove('flash');
+    void chip.offsetWidth;
+    chip.classList.add('flash');
+  }
+}
+async function prepareTextFont(fontId) {
+  await engineReady;
+  if (fontId && fontId.startsWith('local:') && !registeredLocalFonts.has(fontId)) {
+    const rec = localFontRecords.get(fontId);
+    if (!rec) return 'jp';
+    const blob = await rec.blob();
+    engine.registerFont(fontId, rec.fullName || rec.family || fontId, new Uint8Array(await blob.arrayBuffer()));
+    registeredLocalFonts.add(fontId);
+  }
+  return fontId || 'jp';
+}
 
 // ── Theme (light / dark) ──
 function toggleTheme() {
@@ -461,6 +614,9 @@ const thumbUrls = {};   // page idx -> object URL (revoked on invalidate)
 let mainUrl = null;     // current main-page object URL
 
 const engineReady = (async () => {
+  if (location.protocol === 'file:') {
+    $('#fileWarning')?.classList.add('show');
+  }
   const mupdf = await import('./mupdf.js');
   const { createEngine } = await import('./pdf-engine.js');
   engine = createEngine(mupdf);
@@ -530,10 +686,14 @@ async function api(path, body) {
   const p = qi >= 0 ? path.slice(0, qi) : path;
   const idx = parseInt(p.slice(p.lastIndexOf('/') + 1), 10);   // for /api/text/<idx> etc.
   const b = body || {};
+  if (p === '/api/fonts') {
+    const fonts = await ensureFontsLoaded();
+    return { ok: true, fonts: fonts.map(([id, label]) => ({ id, label })) };
+  }
   if (p === '/api/open') return engine.open(b.bytes, b.filename);
   if (p.startsWith('/api/text/')) return engine.getText(idx);
-  if (p === '/api/edit_text') return engine.editText(b.page, b.bbox, b.origin, b.new_text, b.font_size, b.color);
-  if (p === '/api/add_text') return engine.addText(b.page, b.x, b.y, b.text, b.size, b.color, b.bg);
+  if (p === '/api/edit_text') return engine.editText(b.page, b.bbox, b.origin, b.new_text, b.font_size, b.color, b.font);
+  if (p === '/api/add_text') return engine.addText(b.page, b.x, b.y, b.text, b.size, b.color, b.bg, b.font);
   if (p === '/api/add_image') return engine.addImage(b.page, b.x, b.y, b.w, b.image);
   if (p === '/api/draw_shape') return engine.drawShape(b.page, b.type, b.x0, b.y0, b.x1, b.y1, b.color, b.width, b.fill);
   if (p === '/api/annot') return engine.addAnnot(b.page, b);
@@ -544,7 +704,7 @@ async function api(path, body) {
   if (p === '/api/delete_page') return engine.deletePage(b.page);
   if (p === '/api/delete_pages') return engine.deletePages(b.pages);
   if (p === '/api/move_page') return engine.movePage(b.from, b.to);
-  if (p === '/api/rotate') return engine.rotate(b.pages, b.dir);
+  if (p === '/api/rotate') return engine.rotate(Array.isArray(b.pages) ? b.pages : [S.cur], b.dir);
   if (p === '/api/import_pdf') return engine.importPdf(b.bytes, b.at);
   if (p === '/api/extract') return engine.extract(b.pages);
   if (p === '/api/search') return engine.search(qs.get('q') || '');
@@ -664,13 +824,14 @@ edArea.addEventListener('drop', async e => {
   await loadPdf(f);
 });
 
-// ── Selection mode ──
+// ── Page selection mode ──
 function toggleSelectMode() {
   selectMode = !selectMode;
   selectedPages.clear();
   $('#sidebar').classList.toggle('select-mode', selectMode);
   $('#btnSelectMode').classList.toggle('active', selectMode);
   renderPageList();
+  toast(selectMode ? 'ページ選択を開始しました' : 'ページ選択を終了しました', 'info');
 }
 
 // ── Page list (drag reorder) ──
@@ -812,11 +973,13 @@ function afterContentEdit(j) {
 // ── Text edit (existing PDF text) ──
 async function editTextMode() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  const fontsReady = ensureFontsLoaded();
   try {
     const j = await api(`/api/text/${S.cur}`);
     if (!j.spans || !j.spans.length) {
       toast('このページに編集できる文字がありません（画像/スキャンされたPDFの可能性）', 'info'); return;
     }
+    await fontsReady;
     showTextListModal(j.spans);
   } catch (e) { toast(e.message, 'err'); }
 }
@@ -824,6 +987,7 @@ async function editTextMode() {
 async function onStageDblClick(e) {
   if (S.pages === 0 || S.mode) return;   // in a tool mode, dbl-click isn't an edit
   const p = stageCoord(e);
+  const fontsReady = ensureFontsLoaded();
   try {
     const j = await api(`/api/text/${S.cur}`);
     const spans = j.spans || [];
@@ -840,6 +1004,7 @@ async function onStageDblClick(e) {
       if (!spans.length) toast('このページに編集できる文字がありません（画像/スキャンの可能性）', 'info');
       return;
     }
+    await fontsReady;
     showTextEditDialog(hit);
   } catch (err) { toast(err.message, 'err'); }
 }
@@ -906,16 +1071,18 @@ function showTextListModal(spans) {
 }
 function showTextEditDialog(span) {
   openDialog(`<h3>テキストを編集</h3>
-    <input type="text" id="dlgEditText" value="${escAttr(span.text)}">
+    <textarea id="dlgEditText">${escHtml(span.text)}</textarea>
+    <div class="dialog-row"><label>フォント:</label>${fontPickerHtml('dlgEditFont')}</div>
     <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgEditSize" value="${span.size}" min="4" max="200" step="0.5">
       <label>色:</label><input type="color" id="dlgEditColor" value="${escAttr(span.color)}"></div>`,
     async (root) => {
       const newText = root.querySelector('#dlgEditText').value;
       const fontSize = parseFloat(root.querySelector('#dlgEditSize').value) || span.size;
       const color = hexToRgb01(root.querySelector('#dlgEditColor').value);
-      if (newText === span.text) return true;
+      const font = await prepareTextFont(root.querySelector('#dlgEditFont').value);
+      if (newText === span.text && font === 'jp') return true;
       try {
-        const j = await api('/api/edit_text', { page: S.cur, bbox: span.bbox, origin: span.origin, new_text: newText, font_size: fontSize, color });
+        const j = await api('/api/edit_text', { page: S.cur, bbox: span.bbox, origin: span.origin, new_text: newText, font_size: fontSize, color, font });
         afterContentEdit(j); toast('テキストを変更しました', 'ok');
       } catch (e) { toast('テキスト編集に失敗: ' + e.message, 'err'); }
       return true;
@@ -924,7 +1091,7 @@ function showTextEditDialog(span) {
 
 // ── Tools ──
 const DRAG_TOOLS = ['rect', 'ellipse', 'line', 'highlight', 'underline', 'strikeout', 'arrow'];
-const TOOL_LABELS = { addText: 'テキスト追加', addImage: '画像挿入', rect: '四角', ellipse: '楕円', line: '直線', highlight: 'ハイライト', underline: '下線', strikeout: '取り消し線', ink: 'フリーハンド', arrow: '矢印', note: 'コメント' };
+const TOOL_LABELS = { addText: 'テキスト追加', addImage: '画像挿入', eyedropper: 'スポイト', rect: '四角', ellipse: '楕円', line: '直線', highlight: 'ハイライト', underline: '下線', strikeout: '取り消し線', ink: 'フリーハンド', arrow: '矢印', note: 'コメント' };
 const DEFAULT_COLORS = { highlight: '#ffd400', underline: '#e11d48', strikeout: '#e11d48', ink: '#1e293b', arrow: '#e11d48', rect: '#1e293b', ellipse: '#1e293b', line: '#1e293b', note: '#fde047' };
 
 function setTool(tool) {
@@ -937,21 +1104,24 @@ function setTool(tool) {
 
   // tool options bar
   const opts = $('#toolOptions');
-  const showOpts = DRAG_TOOLS.includes(tool) || tool === 'ink' || tool === 'note';
+  const showOpts = DRAG_TOOLS.includes(tool) || tool === 'ink' || tool === 'note' || tool === 'eyedropper';
   opts.classList.toggle('show', showOpts);
   $('#mainLayout').classList.toggle('has-options', showOpts);
   if (showOpts) {
     $('#toLabel').textContent = TOOL_LABELS[tool] || 'ツール';
-    if (DEFAULT_COLORS[tool]) { S.toolColor = DEFAULT_COLORS[tool]; $('#toColor').value = S.toolColor; }
+    if (DEFAULT_COLORS[tool] && !S.customToolColor) S.toolColor = DEFAULT_COLORS[tool];
+    $('#toColor').value = S.toolColor;
+    updateCurrentColorChip();
     const isShape = ['rect', 'ellipse'].includes(tool);
-    $('#toWidthWrap').style.display = (tool === 'note' || tool === 'highlight') ? 'none' : 'flex';
+    $('#toWidthWrap').style.display = (tool === 'note' || tool === 'highlight' || tool === 'eyedropper') ? 'none' : 'flex';
     $('#toFillWrap').style.display = isShape ? 'flex' : 'none';
   }
   applyToolCursor();
   const hint = tool === 'note' ? 'ページ上をクリックしてコメントを配置' :
                tool === 'ink' ? 'ページ上でドラッグして手書き' :
                tool === 'addText' ? 'ページ上をクリックして配置' :
-               tool === 'select' ? '画像や図形をクリックして選択 → ドラッグで移動・四隅でリサイズ（Deleteで削除）' :
+               tool === 'select' ? '画像・図形・追加文字をクリックして選択 → ドラッグで移動・四隅でリサイズ' :
+               tool === 'eyedropper' ? 'ページ上の色をクリックして現在色に設定' :
                tool === 'erase' ? '削除したい注釈（ハイライト/手書き/コメント等）をクリック' :
                DRAG_TOOLS.includes(tool) ? 'ページ上でドラッグ' : '';
   if (hint) toast(hint, 'info');
@@ -966,16 +1136,18 @@ function clearTool() {
 }
 function applyToolCursor() {
   const stage = $('#stage'); if (!stage) return;
-  stage.classList.remove('tool-draw', 'tool-text', 'tool-select');
+  stage.classList.remove('tool-draw', 'tool-text', 'tool-select', 'tool-eyedropper');
   if (!S.mode) return;
   if (S.mode === 'select') stage.classList.add('tool-select');
+  else if (S.mode === 'eyedropper') stage.classList.add('tool-eyedropper');
   else if (S.mode === 'addText' || S.mode === 'note') stage.classList.add('tool-text');
   else stage.classList.add('tool-draw');
 }
 // tool options listeners
-$('#toColor').addEventListener('input', e => S.toolColor = e.target.value);
+$('#toColor').addEventListener('input', e => { S.toolColor = e.target.value; S.customToolColor = true; updateCurrentColorChip(); });
 $('#toWidth').addEventListener('input', e => { S.toolWidth = +e.target.value; $('#toWidthVal').textContent = e.target.value; });
 $('#toFill').addEventListener('change', e => S.toolFill = e.target.checked);
+updateCurrentColorChip();
 // Click the page indicator to jump to a specific page.
 $('#pageIndicator').addEventListener('click', () => {
   if (S.pages === 0) return;
@@ -998,19 +1170,27 @@ $('#imgInput').addEventListener('change', e => {
 });
 
 // ── Add text dialog ──
-function showAddTextDialog(x, y) {
+async function showAddTextDialog(x, y) {
+  await ensureFontsLoaded();
   openDialog(`<h3>テキストを追加</h3>
-    <input type="text" id="dlgAddText" placeholder="テキストを入力...">
+    <textarea id="dlgAddText" placeholder="テキストを入力..."></textarea>
+    <div class="dialog-row"><label>フォント:</label>${fontPickerHtml('dlgAddFont')}</div>
     <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgAddSize" value="14" min="4" max="200" step="0.5">
-      <label>色:</label><input type="color" id="dlgAddColor" value="#000000"></div>
+      <label>色:</label><input type="color" id="dlgAddColor" value="${escAttr(S.toolColor)}"></div>
     <label class="to-chk"><input type="checkbox" id="dlgAddBg"> 下地を白で塗る（下の文字を隠して上書き）</label>`,
     async (root) => {
       const text = root.querySelector('#dlgAddText').value;
       const size = parseFloat(root.querySelector('#dlgAddSize').value) || 14;
       const color = hexToRgb01(root.querySelector('#dlgAddColor').value);
+      const font = await prepareTextFont(root.querySelector('#dlgAddFont').value);
       const bg = root.querySelector('#dlgAddBg').checked;
       if (!text) return true;
-      try { const j = await api('/api/add_text', { page: S.cur, x, y, text, size, color, bg }); afterContentEdit(j); toast('テキストを追加しました', 'ok'); }
+      try {
+        const j = await api('/api/add_text', { page: S.cur, x, y, text, size, color, bg, font });
+        afterContentEdit(j);
+        await selectNewestAnnotation('FreeText');
+        toast('テキストを追加しました（ドラッグで移動できます）', 'ok');
+      }
       catch (e) { toast('テキスト追加に失敗: ' + e.message, 'err'); }
       return true;
     }, { okLabel: 'OK', focus: '#dlgAddText' });
@@ -1027,6 +1207,30 @@ function showNoteDialog(x, y) {
     }, { okLabel: '追加', focus: '#dlgNote' });
 }
 
+function pickColorAt(p) {
+  const img = $('#pageImg');
+  if (!img || !img.naturalWidth) { toast('色を取得できません', 'err'); return; }
+  try {
+    const cv = document.createElement('canvas');
+    cv.width = img.naturalWidth;
+    cv.height = img.naturalHeight;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const px = Math.max(0, Math.min(cv.width - 1, Math.round(p.x * S.zoom)));
+    const py = Math.max(0, Math.min(cv.height - 1, Math.round(p.y * S.zoom)));
+    const d = ctx.getImageData(px, py, 1, 1).data;
+    const hex = rgbToHex255(d[0], d[1], d[2]);
+    S.toolColor = hex;
+    S.customToolColor = true;
+    $('#toColor').value = hex;
+    updateCurrentColorChip(true);
+    clearTool();
+    toast(`色を取得しました: ${hex}`, 'ok');
+  } catch (e) {
+    toast('色を取得できません: ' + e.message, 'err');
+  }
+}
+
 // ── Canvas interactions ──
 function stageCoord(e) {
   const img = $('#pageImg'); const r = img.getBoundingClientRect();
@@ -1037,6 +1241,7 @@ async function onStageMouseDown(e) {
   const p = stageCoord(e);
   if (S.mode === 'select') { await onSelectDown(p); return; }
   if (S.mode === 'erase') { await eraseAt(p); return; }
+  if (S.mode === 'eyedropper') { pickColorAt(p); return; }
   if (S.mode === 'addText') { clearTool(); showAddTextDialog(p.x, p.y); return; }
   if (S.mode === 'note') { clearTool(); showNoteDialog(p.x, p.y); return; }
   if (S.mode === 'addImage') {
@@ -1155,7 +1360,25 @@ function hitHandle(p, r) {
   return null;
 }
 function insideRect(p, r) { return p.x >= r[0] && p.x <= r[2] && p.y >= r[1] && p.y <= r[3]; }
-function resizedRect(orig, handle, p) {
+function resizedRect(orig, handle, p, lockAspect) {
+  if (lockAspect) {
+    // Images must keep their original proportions, so anchor the opposite corner
+    // and scale the dragged corner along the axis that moved more (relative to
+    // the original size), deriving the other side from the original aspect.
+    const ow = orig[2] - orig[0], oh = orig[3] - orig[1];
+    const aspect = ow / Math.max(1e-6, oh);
+    // anchor = corner opposite the dragged handle; signs point toward the drag.
+    const ax = (handle === 0 || handle === 2) ? orig[2] : orig[0];
+    const ay = (handle === 0 || handle === 1) ? orig[3] : orig[1];
+    const sx = (handle === 0 || handle === 2) ? -1 : 1;
+    const sy = (handle === 0 || handle === 1) ? -1 : 1;
+    const pw = Math.abs(p.x - ax), ph = Math.abs(p.y - ay);
+    let nw, nh;
+    if (pw / Math.max(1e-6, ow) > ph / Math.max(1e-6, oh)) { nw = pw; nh = pw / aspect; }
+    else { nh = ph; nw = ph * aspect; }
+    const cx = ax + sx * nw, cy = ay + sy * nh;
+    return [Math.min(ax, cx), Math.min(ay, cy), Math.max(ax, cx), Math.max(ay, cy)];
+  }
   let [x0, y0, x1, y1] = orig;
   if (handle === 0) { x0 = p.x; y0 = p.y; } else if (handle === 1) { x1 = p.x; y0 = p.y; }
   else if (handle === 2) { x0 = p.x; y1 = p.y; } else { x1 = p.x; y1 = p.y; }
@@ -1192,7 +1415,7 @@ function onSelectMove(p) {
   if (S.draw.kind === 'move') {
     const dx = p.x - S.draw.startPt.x, dy = p.y - S.draw.startPt.y, o = S.draw.orig;
     nr = [o[0] + dx, o[1] + dy, o[2] + dx, o[3] + dy];
-  } else { nr = resizedRect(S.draw.orig, S.draw.handle, p); }
+  } else { nr = resizedRect(S.draw.orig, S.draw.handle, p, S.sel && S.sel.kind === 'Stamp'); }
   S.draw.cur = nr; drawSelection(nr);
 }
 async function onSelectUp(e) {
@@ -1205,7 +1428,7 @@ async function onSelectUp(e) {
   const p = stageCoord(e);
   let nr;
   if (draw.kind === 'move') { const dx = p.x - draw.startPt.x, dy = p.y - draw.startPt.y, o0 = draw.orig; nr = [o0[0] + dx, o0[1] + dy, o0[2] + dx, o0[3] + dy]; }
-  else nr = resizedRect(draw.orig, draw.handle, p);
+  else nr = resizedRect(draw.orig, draw.handle, p, S.sel.kind === 'Stamp');
   const MIN = 6;                       // keep a usable minimum size
   if (nr[2] - nr[0] < MIN) nr[2] = nr[0] + MIN;
   if (nr[3] - nr[1] < MIN) nr[3] = nr[1] + MIN;
@@ -1241,19 +1464,19 @@ async function onImageUp(e) {
     }
     const j = await api('/api/add_image', { page: S.cur, x, y, w: wid, image: img.bytes });
     afterContentEdit(j);
-    await selectNewestImage();         // auto-select so it can be adjusted immediately
+    await selectNewestAnnotation('Stamp'); // auto-select so it can be adjusted immediately
     toast('画像を挿入しました（ドラッグで移動・四隅でリサイズ）', 'ok');
   } catch (err) { toast('画像挿入に失敗: ' + err.message, 'err'); }
 }
-async function selectNewestImage() {
+async function selectNewestAnnotation(kind) {
   let annots = [];
   try { annots = (await api(`/api/annots/${S.cur}`)).annots || []; } catch (e) { return; }
-  const last = annots[annots.length - 1];   // the just-inserted Stamp is the newest annotation
-  if (!last || last.kind !== 'Stamp') return;
+  const last = annots[annots.length - 1];
+  if (!last || (kind && last.kind !== kind)) return;
   S.mode = 'select';
   $$('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === 'select'));
   applyToolCursor();
-  S.sel = { page: S.cur, xref: last.xref, kind: 'Stamp', rect: last.rect.slice() };
+  S.sel = { page: S.cur, xref: last.xref, kind: last.kind, rect: last.rect.slice() };
   drawSelection();
 }
 
@@ -1304,7 +1527,7 @@ async function movePage(dir) {
 }
 async function rotateCurrent() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  const pages = (selectMode && selectedPages.size > 0) ? [...selectedPages] : [S.cur];
+  const pages = [S.cur];
   try { const j = await api('/api/rotate', { pages, dir: 1 }); afterStructural(j); toast('回転しました', 'ok'); }
   catch (e) { toast(e.message, 'err'); }
 }
@@ -1320,7 +1543,7 @@ async function importPdf() {
 }
 async function extractPages() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  if (!selectMode || selectedPages.size === 0) { toast('選択モードでページを選んでください', 'info'); return; }
+  if (!selectMode || selectedPages.size === 0) { toast('ページ選択で書き出すページを選んでください', 'info'); return; }
   try {
     const j = await api('/api/extract', { pages: [...selectedPages] });
     downloadBytes(j.bytes, 'extracted.pdf');
