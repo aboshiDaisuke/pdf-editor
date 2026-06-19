@@ -212,21 +212,95 @@ export function createEngine(mupdf) {
     return quads;
   }
 
-  // ── FreeText insertion (used by add_text and edit_text reinsertion) ──────
-  function insertFreeText(page, x, yTop, text, size, color) {
-    // Width generous enough to avoid wrapping.
-    const w = Math.max(estTextWidth(text, size), 8) + size * 0.6;
-    const ft = page.createAnnotation("FreeText");
-    ft.setRect([x, yTop, x + w, yTop + size * 1.55]);
-    ft.setDefaultAppearance("Helv", size, col(color));
-    ft.setBorderWidth(0);
-    try { ft.setColor([]); } catch (e) {}        // no border box
-    ft.setContents(text);
-    ft.update();
-    return ft;
+  // ── Real text insertion into the page content stream ────────────────────
+  // FreeText annotations could only use the base-14 fonts (so no Japanese) and
+  // mupdf lays them out inside a padded rect, never on the requested baseline.
+  // Instead we embed a real font and draw glyphs straight into /Contents at the
+  // exact display baseline — matching the desktop build's page.insert_text().
+  //
+  // Selectable/searchable text is preserved: addFont() embeds a CID font with
+  // Identity encoding (so the content-stream code == glyph id) plus a ToUnicode
+  // map, and subsetFonts() on save trims the embedded program to used glyphs.
+  const FONT_SPECS = {
+    jp:    { arg: "ja",          res: "FEjp" },     // Droid Sans Fallback (CJK + latin)
+    sans:  { arg: "Helvetica",   res: "FEsans" },
+    serif: { arg: "Times-Roman", res: "FEserif" },
+    mono:  { arg: "Courier",     res: "FEmono" },
+  };
+  // Embedded fonts live in the document, so cache per-document (a new doc from
+  // open/undo/redo gets a fresh entry; the old one is GC'd with its document).
+  const fontCache = new WeakMap();
+  function embedFont(doc, fontKey) {
+    let perDoc = fontCache.get(doc);
+    if (!perDoc) { perDoc = new Map(); fontCache.set(doc, perDoc); }
+    let ent = perDoc.get(fontKey);
+    if (!ent) {
+      const spec = FONT_SPECS[fontKey] || FONT_SPECS.jp;
+      const font = new mupdf.Font(spec.arg);
+      ent = { font, ref: doc.addFont(font), name: spec.res };
+      perDoc.set(fontKey, ent);
+    }
+    return ent;
   }
 
-  function editText(idx, bbox, origin, newText, fontSize, color) {
+  // Inverse of an affine matrix [a b c d e f] (mupdf row-vector convention).
+  function invertAffine(m) {
+    const [a, b, c, d, e, f] = m;
+    const det = a * d - b * c || 1e-9;
+    const ia = d / det, ib = -b / det, ic = -c / det, id = a / det;
+    return [ia, ib, ic, id, -(e * ia + f * ic), -(e * ib + f * id)];
+  }
+  const fmt = (n) => Number(n).toFixed(4).replace(/\.?0+$/, "") || "0";
+
+  // Draw `text` at display-space baseline (dx, dy). Returns the text width in
+  // points (for the optional whiteout box). Upright on rotated pages.
+  function insertText(doc, page, dx, dy, text, size, color, fontKey) {
+    const ent = embedFont(doc, fontKey);
+
+    // Encode to glyph ids (Identity-encoded CID font: code == gid) + measure.
+    let hex = "", width = 0;
+    for (const ch of [...text]) {
+      const gid = ent.font.encodeCharacter(ch.codePointAt(0));
+      hex += gid.toString(16).padStart(4, "0");
+      width += ent.font.advanceGlyph(gid);
+    }
+    width *= size;
+
+    // Register the font in the page's resources (inheritable-aware so we never
+    // shadow resources the existing content already relies on).
+    const pd = page.getObject();
+    let res = pd.getInheritable("Resources");
+    if (!res || !res.isDictionary()) { res = doc.newDictionary(); pd.put("Resources", res); }
+    let fonts = res.get("Font");
+    if (!fonts || !fonts.isDictionary()) { fonts = doc.newDictionary(); res.put("Font", fonts); }
+    fonts.put(ent.name, ent.ref);
+
+    // Cancel the page transform with `cm` so we draw directly in display space,
+    // then flip Y (display space is y-down, PDF text space is y-up).
+    const cm = invertAffine(page.getTransform()).map(fmt).join(" ");
+    const [cr, cg, cb] = col(color);
+    const stream = `q ${cm} cm BT /${ent.name} ${fmt(size)} Tf ` +
+      `${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg 1 0 0 -1 ${fmt(dx)} ${fmt(dy)} Tm <${hex}> Tj ET Q`;
+
+    const buf = new mupdf.Buffer();
+    buf.writeLine(stream);
+    const streamObj = doc.addStream(buf, doc.newDictionary());
+
+    // Append our stream after the existing content (never replace it).
+    const arr = doc.newArray();
+    const existing = pd.get("Contents");
+    if (existing && existing.isArray()) {
+      for (let i = 0; i < existing.length; i++) arr.push(existing.get(i));
+    } else if (existing) {
+      arr.push(existing);
+    }
+    arr.push(streamObj);
+    pd.put("Contents", arr);
+    page.update();
+    return width;
+  }
+
+  function editText(idx, bbox, origin, newText, fontSize, color, fontKey) {
     snapshot();
     // applyRedactions is destructive (glyphs are gone before the new text goes
     // in). If anything below throws, roll the document back to the snapshot so a
@@ -240,9 +314,11 @@ export function createEngine(mupdf) {
         red.update();
         page.applyRedactions(false, mupdf.PDFPage.REDACT_IMAGE_NONE,
           mupdf.PDFPage.REDACT_LINE_ART_NONE, mupdf.PDFPage.REDACT_TEXT_REMOVE);
-        // Re-insert near the original baseline/top-left.
+        // Re-insert at the ORIGINAL baseline (origin), not the bbox corner — the
+        // bbox includes ascenders/descenders, so anchoring to it shifts the line.
         const size = numOr(fontSize, (rect[3] - rect[1]) || 12);
-        insertFreeText(page, rect[0], rect[1] - size * 0.12, newText, size, color);
+        const base = origin || [rect[0], rect[3]];
+        insertText(state.doc, page, base[0], base[1], newText, size, color, fontKey || "jp");
         return status();
       });
     } catch (e) {
@@ -251,10 +327,12 @@ export function createEngine(mupdf) {
     }
   }
 
-  function addText(idx, x, y, text, size, color, bg) {
+  function addText(idx, x, y, text, size, color, bg, fontKey) {
     snapshot();
     return withPage(idx, (page) => {
       size = numOr(size, 14);
+      // Click point is the visual top-left; the text baseline sits `size` below.
+      const baseY = y + size;
       if (bg && text) {
         const est = estTextWidth(text, size);
         const pad = size * 0.2;
@@ -266,7 +344,7 @@ export function createEngine(mupdf) {
         try { sq.setColor([]); } catch (e) {}
         sq.update();
       }
-      insertFreeText(page, x, y, text, size, color);
+      insertText(state.doc, page, x, baseY, text, size, color, fontKey || "jp");
       return status();
     });
   }
