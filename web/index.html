@@ -1053,6 +1053,42 @@ function clearAllDragStyles() { $$('.page-item').forEach(el => el.classList.remo
 
 // ── Page render with overlay ──
 let renderGen = 0;
+// Adjacent-page prefetch cache: idx@zoom -> {w,h,pixels}. LRU, max 4 entries.
+const pixelCache = new Map();
+const cacheKey = (idx, zoom) => `${idx}@${zoom}`;
+function cachePut(key, val) {
+  pixelCache.delete(key);
+  pixelCache.set(key, val);
+  if (pixelCache.size > 4) pixelCache.delete(pixelCache.keys().next().value);
+}
+function paintPixels(canvas, overlay, w, h, pixels) {
+  canvas.width = w; canvas.height = h;
+  // Engine returns 3ch RGB; expand to 4ch RGBA for ImageData.
+  const rgba = new Uint8ClampedArray(w * h * 4);
+  for (let i = 0, j = 0; i < pixels.length; i += 3, j += 4) {
+    rgba[j] = pixels[i]; rgba[j + 1] = pixels[i + 1]; rgba[j + 2] = pixels[i + 2]; rgba[j + 3] = 255;
+  }
+  canvas.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
+  overlay.setAttribute('width', canvas.width);
+  overlay.setAttribute('height', canvas.height);
+  overlay.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
+  drawSearchHits();
+  drawSelection();
+}
+const idleSchedule = window.requestIdleCallback || (fn => setTimeout(fn, 300));
+function prefetchNeighbors(idx, zoom) {
+  idleSchedule(() => {
+    if (zoom !== S.zoom || idx !== S.cur) return;   // stale by the time idle fires
+    for (const n of [idx - 1, idx + 1]) {
+      if (n < 0 || n >= S.pages) continue;
+      const key = cacheKey(n, zoom);
+      if (pixelCache.has(key)) continue;
+      call('renderPixels', n, zoom).then(res => {
+        if (zoom === S.zoom) cachePut(key, res);
+      }).catch(() => {});
+    }
+  });
+}
 async function renderPage() {
   const old = edArea.querySelector('.page-display');
   if (old) old.remove();
@@ -1074,21 +1110,19 @@ async function renderPage() {
   wrap.appendChild(stage); edArea.appendChild(wrap);
   applyToolCursor(); updatePageIndicator();
 
+  const key = cacheKey(idx, zoom);
+  const cached = pixelCache.get(key);
+  if (cached) {
+    paintPixels(canvas, overlay, cached.w, cached.h, cached.pixels);
+    prefetchNeighbors(idx, zoom);
+    return;
+  }
   try {
     const { w, h, pixels } = await call('renderPixels', idx, zoom);
     if (gen !== renderGen) return;   // a newer render started meanwhile; discard this stale result
-    canvas.width = w; canvas.height = h;
-    // Engine returns 3ch RGB; expand to 4ch RGBA for ImageData.
-    const rgba = new Uint8ClampedArray(w * h * 4);
-    for (let i = 0, j = 0; i < pixels.length; i += 3, j += 4) {
-      rgba[j] = pixels[i]; rgba[j + 1] = pixels[i + 1]; rgba[j + 2] = pixels[i + 2]; rgba[j + 3] = 255;
-    }
-    canvas.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
-    overlay.setAttribute('width', canvas.width);
-    overlay.setAttribute('height', canvas.height);
-    overlay.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
-    drawSearchHits();
-    drawSelection();
+    paintPixels(canvas, overlay, w, h, pixels);
+    cachePut(key, { w, h, pixels });
+    prefetchNeighbors(idx, zoom);
   } catch (e) { if (gen === renderGen) toast(e.message, 'err'); }
 }
 
@@ -1126,15 +1160,16 @@ function afterStructural(j) {
   applyStatus(j);
   S.sel = null;                       // indices shifted — drop any selection
   S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
-  textCache.clear();
+  textCache.clear(); pixelCache.clear();
   invalidateAllThumbs(); renderPageList(); renderPage(); renderOutline();
   if (S.panel) refreshPanel();
 }
 // content edit on the current page only: refresh just this page + its thumbnail
 function afterContentEdit(j) {
   applyStatus(j); invalidateThumb(S.cur);
-  textCache.delete(S.cur);
-  updateThumb(S.cur); renderPage();
+  textCache.delete(S.cur); pixelCache.clear();
+  idleSchedule(() => updateThumb(S.cur));
+  renderPage();
 }
 
 // ── Text edit (existing PDF text) ──
@@ -1790,12 +1825,16 @@ function renderSearchPanel() {
 async function doSearch(q) {
   q = (q || '').trim(); S.search.q = q;
   if (!q) { S.search.results = []; S.search.idx = -1; renderSearchResults(); drawSearchHits(); return; }
+  const btn = $('#searchGo');
+  const prevLabel = btn ? btn.textContent : null;
+  if (btn) { btn.textContent = '検索中...'; btn.disabled = true; }
   try {
     const j = await api(`/api/search?q=${encodeURIComponent(q)}`);
     S.search.results = j.results; S.search.idx = j.results.length ? 0 : -1;
     if (j.results.length) gotoSearchHit(0);
     renderSearchResults(); drawSearchHits();
   } catch (e) { toast(e.message, 'err'); }
+  finally { if (btn) { btn.textContent = prevLabel; btn.disabled = false; } }
 }
 function renderSearchResults() {
   const cnt = $('#searchCount'), box = $('#searchResults');
