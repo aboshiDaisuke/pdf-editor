@@ -676,7 +676,6 @@ function toggleTheme() {
 // ── mupdf.js engine (runs entirely in the browser; replaces the Flask backend) ──
 let engine = null;
 const thumbUrls = {};   // page idx -> object URL (revoked on invalidate)
-let mainUrl = null;     // current main-page object URL
 
 const engineReady = (async () => {
   if (location.protocol === 'file:') {
@@ -885,6 +884,7 @@ function onOpened(j) {
   $('#btnSelectMode').classList.remove('active');
   S.search = { q: '', results: [], idx: -1 };
   clearTool();
+  textCache.clear();
   invalidateAllThumbs();
   applyStatus(j);
   $('#emptyState').style.display = 'none';
@@ -1028,27 +1028,31 @@ function renderPage() {
 
   const wrap = document.createElement('div'); wrap.className = 'page-display';
   const stage = document.createElement('div'); stage.className = 'page-stage'; stage.id = 'stage';
-  const img = document.createElement('img'); img.className = 'page-canvas'; img.id = 'pageImg';
-  img.alt = `ページ ${S.cur + 1}`;
-  img.ondragstart = () => false;
+  const canvas = document.createElement('canvas'); canvas.className = 'page-canvas'; canvas.id = 'pageImg';
+  canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', `ページ ${S.cur + 1}`);
+  canvas.style.width = ''; canvas.style.height = '';   // clear any zoom-preview CSS scale
+  canvas.ondragstart = () => false;
   try {
-    if (mainUrl) URL.revokeObjectURL(mainUrl);
-    mainUrl = pngBlobUrl(S.cur, S.zoom); img.src = mainUrl;
+    const { w, h, pixels } = engine.renderPixels(S.cur, S.zoom);
+    canvas.width = w; canvas.height = h;
+    // Engine returns 3ch RGB; expand to 4ch RGBA for ImageData.
+    const rgba = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0, j = 0; i < pixels.length; i += 3, j += 4) {
+      rgba[j] = pixels[i]; rgba[j + 1] = pixels[i + 1]; rgba[j + 2] = pixels[i + 2]; rgba[j + 3] = 255;
+    }
+    canvas.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
   } catch (e) { toast(e.message, 'err'); }
   const overlay = document.createElementNS(SVGNS, 'svg'); overlay.setAttribute('class', 'overlay'); overlay.id = 'overlay';
   const sizeOverlay = () => {
-    if (!img.naturalWidth) return;
-    overlay.setAttribute('width', img.naturalWidth);
-    overlay.setAttribute('height', img.naturalHeight);
-    overlay.setAttribute('viewBox', `0 0 ${img.naturalWidth} ${img.naturalHeight}`);
+    if (!canvas.width) return;
+    overlay.setAttribute('width', canvas.width);
+    overlay.setAttribute('height', canvas.height);
+    overlay.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
     drawSearchHits();
     drawSelection();
   };
-  img.addEventListener('load', sizeOverlay);
-  // A cached image may already be complete before the listener attaches, so
-  // 'load' never fires; size the overlay immediately in that case.
-  if (img.complete && img.naturalWidth) sizeOverlay();
-  stage.appendChild(img); stage.appendChild(overlay);
+  sizeOverlay();
+  stage.appendChild(canvas); stage.appendChild(overlay);
   stage.addEventListener('mousedown', onStageMouseDown);
   stage.addEventListener('mousemove', onStageMouseMove);
   stage.addEventListener('dblclick', onStageDblClick);
@@ -1058,8 +1062,23 @@ function renderPage() {
 
 // ── Zoom ──
 function setZoomLabel() { $('#zoomLbl').textContent = Math.round(S.zoom / 2 * 100) + '%'; }
-function zoomIn() { S.zoom = Math.min(8, S.zoom + 0.5); setZoomLabel(); if (S.pages) renderPage(); }
-function zoomOut() { S.zoom = Math.max(0.5, S.zoom - 0.5); setZoomLabel(); if (S.pages) renderPage(); }
+let zoomTimer = null;
+function applyZoom(newZoom) {
+  const oldZoom = S.zoom;
+  const canvas = $('#pageImg');
+  if (canvas && canvas.width && oldZoom) {
+    // Instant CSS-scale preview; the sharp re-render lands after the debounce.
+    canvas.style.width = (canvas.width / oldZoom * newZoom) + 'px';
+    canvas.style.height = (canvas.height / oldZoom * newZoom) + 'px';
+    const overlay = $('#overlay');
+    if (overlay) overlay.innerHTML = '';   // selection/search highlights redraw after the real render
+  }
+  S.zoom = newZoom; setZoomLabel();
+  clearTimeout(zoomTimer);
+  zoomTimer = setTimeout(() => { if (S.pages) renderPage(); }, 150);
+}
+function zoomIn() { applyZoom(Math.min(8, S.zoom + 0.5)); }
+function zoomOut() { applyZoom(Math.max(0.5, S.zoom - 0.5)); }
 
 // ── Undo / Redo ──
 async function doUndo() {
@@ -1075,26 +1094,33 @@ function afterStructural(j) {
   applyStatus(j);
   S.sel = null;                       // indices shifted — drop any selection
   S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
+  textCache.clear();
   invalidateAllThumbs(); renderPageList(); renderPage(); renderOutline();
   if (S.panel) refreshPanel();
 }
 // content edit on the current page only: refresh just this page + its thumbnail
 function afterContentEdit(j) {
   applyStatus(j); invalidateThumb(S.cur);
+  textCache.delete(S.cur);
   updateThumb(S.cur); renderPage();
 }
 
 // ── Text edit (existing PDF text) ──
+const textCache = new Map();   // page idx -> spans
+async function getPageText(idx) {
+  if (!textCache.has(idx)) textCache.set(idx, (await api(`/api/text/${idx}`)).spans || []);
+  return textCache.get(idx);
+}
 async function editTextMode() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
   const fontsReady = ensureFontsLoaded();
   try {
-    const j = await api(`/api/text/${S.cur}`);
-    if (!j.spans || !j.spans.length) {
+    const spans = await getPageText(S.cur);
+    if (!spans.length) {
       toast('このページに編集できる文字がありません（画像/スキャンされたPDFの可能性）', 'info'); return;
     }
     await fontsReady;
-    showTextListModal(j.spans);
+    showTextListModal(spans);
   } catch (e) { toast(e.message, 'err'); }
 }
 // Acrobat-style: double-click a piece of text on the page to edit it directly.
@@ -1103,8 +1129,7 @@ async function onStageDblClick(e) {
   const p = stageCoord(e);
   const fontsReady = ensureFontsLoaded();
   try {
-    const j = await api(`/api/text/${S.cur}`);
-    const spans = j.spans || [];
+    const spans = await getPageText(S.cur);
     // hit-test against the display-space bbox (dbox); pick the smallest match.
     let hit = null, best = Infinity;
     for (const sp of spans) {
@@ -1155,10 +1180,10 @@ function updatePageIndicator() {
   if (el) el.textContent = S.pages ? `${S.cur + 1} / ${S.pages}` : '– / –';
 }
 function fitWidth() {
-  const img = $('#pageImg');
-  if (!img || !img.naturalWidth) { toast('PDFを先に開いてください', 'info'); return; }
+  const canvas = $('#pageImg');
+  if (!canvas || !canvas.width) { toast('PDFを先に開いてください', 'info'); return; }
   const area = (edArea.clientWidth || 900) - 56;       // minus padding
-  const ptW = img.naturalWidth / S.zoom;               // page width in display points
+  const ptW = canvas.width / S.zoom;                   // page width in display points
   S.zoom = Math.max(0.5, Math.min(8, area / ptW));
   setZoomLabel(); renderPage();
 }
@@ -1324,16 +1349,12 @@ function showNoteDialog(x, y) {
 }
 
 function pickColorAt(p) {
-  const img = $('#pageImg');
-  if (!img || !img.naturalWidth) { toast('色を取得できません', 'err'); return; }
+  const canvas = $('#pageImg');
+  if (!canvas || !canvas.width) { toast('色を取得できません', 'err'); return; }
   try {
-    const cv = document.createElement('canvas');
-    cv.width = img.naturalWidth;
-    cv.height = img.naturalHeight;
-    const ctx = cv.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0);
-    const px = Math.max(0, Math.min(cv.width - 1, Math.round(p.x * S.zoom)));
-    const py = Math.max(0, Math.min(cv.height - 1, Math.round(p.y * S.zoom)));
+    const ctx = canvas.getContext('2d');
+    const px = Math.max(0, Math.min(canvas.width - 1, Math.round(p.x * S.zoom)));
+    const py = Math.max(0, Math.min(canvas.height - 1, Math.round(p.y * S.zoom)));
     const d = ctx.getImageData(px, py, 1, 1).data;
     const hex = rgbToHex255(d[0], d[1], d[2]);
     S.toolColor = hex;
