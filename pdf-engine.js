@@ -195,9 +195,26 @@ export function createEngine(mupdf) {
   }
 
   // ── open ─────────────────────────────────────────────────────────────────
-  function open(bytes, filename) {
+  function open(bytes, filename, password) {
     validatePdfHeader(bytes);
-    setDoc(openBytes(bytes));
+    let doc = openBytes(bytes);
+    if (doc.needsPassword()) {
+      const ok = password ? doc.authenticatePassword(password) : 0;
+      if (!ok) {
+        doc.destroy && doc.destroy();
+        const err = new Error(password ? "パスワードが違います" : "このPDFはパスワードで保護されています");
+        err.needPassword = true;
+        throw err;
+      }
+      // Normalize to an unencrypted in-memory copy: undo/redo snapshots reopen
+      // saved bytes, which would otherwise re-require the password every time.
+      const buf = doc.saveToBuffer("decrypt");
+      const plain = buf.asUint8Array().slice();
+      buf.destroy && buf.destroy();
+      doc.destroy && doc.destroy();
+      doc = openBytes(plain);
+    }
+    setDoc(doc);
     state.filename = filename || "document.pdf";
     state.dirty = false;
     state.undo = [];
@@ -341,11 +358,7 @@ export function createEngine(mupdf) {
     // Register the font in the page's resources (inheritable-aware so we never
     // shadow resources the existing content already relies on).
     const pd = page.getObject();
-    let res = pd.getInheritable("Resources");
-    if (!res || !res.isDictionary()) { res = doc.newDictionary(); pd.put("Resources", res); }
-    let fonts = res.get("Font");
-    if (!fonts || !fonts.isDictionary()) { fonts = doc.newDictionary(); res.put("Font", fonts); }
-    fonts.put(ent.name, ent.ref);
+    resourceSubDict(doc, pageResources(doc, pd), "Font").put(ent.name, ent.ref);
 
     // Cancel the page transform with `cm` so we draw directly in display space,
     // then flip Y (display space is y-down, PDF text space is y-up).
@@ -357,11 +370,16 @@ export function createEngine(mupdf) {
     const stream = `q ${cm} cm BT /${ent.name} ${fmt(size)} Tf ` +
       `${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg ${commands} ET Q`;
 
-    const buf = new mupdf.Buffer();
-    buf.writeLine(stream);
-    const streamObj = doc.addStream(buf, doc.newDictionary());
+    appendContentStream(doc, pd, stream);
+    page.update();
+    return width;
+  }
 
-    // Append our stream after the existing content (never replace it).
+  // Append a content stream after the page's existing content (never replace it).
+  function appendContentStream(doc, pd, streamStr) {
+    const buf = new mupdf.Buffer();
+    buf.writeLine(streamStr);
+    const streamObj = doc.addStream(buf, doc.newDictionary());
     const arr = doc.newArray();
     const existing = pd.get("Contents");
     if (existing && existing.isArray()) {
@@ -371,8 +389,18 @@ export function createEngine(mupdf) {
     }
     arr.push(streamObj);
     pd.put("Contents", arr);
-    page.update();
-    return width;
+  }
+
+  // Get (or create) the page's inheritable-aware Resources dictionary.
+  function pageResources(doc, pd) {
+    let res = pd.getInheritable("Resources");
+    if (!res || !res.isDictionary()) { res = doc.newDictionary(); pd.put("Resources", res); }
+    return res;
+  }
+  function resourceSubDict(doc, res, key) {
+    let d = res.get(key);
+    if (!d || !d.isDictionary()) { d = doc.newDictionary(); res.put(key, d); }
+    return d;
   }
 
   function encodeLine(font, text) {
@@ -719,6 +747,205 @@ export function createEngine(mupdf) {
     }
   }
 
+  // ── outline (bookmarks) ──────────────────────────────────────────────────
+  function getOutline() {
+    const doc = requireDoc();
+    const items = [];
+    const walk = (list, depth) => {
+      for (const it of list || []) {
+        let page = Number.isInteger(it.page) ? it.page : null;
+        if (page === null && it.uri) {
+          try { const p = doc.resolveLink(it.uri); if (p >= 0) page = p; } catch (e) {}
+        }
+        items.push({ title: it.title || "(無題)", page, depth });
+        if (it.down) walk(it.down, depth + 1);
+      }
+    };
+    let root = null;
+    try { root = doc.loadOutline(); } catch (e) {}
+    walk(root || [], 0);
+    return { items };
+  }
+
+  // ── stamp (Acrobat-style rubber stamp: rounded border + bold text) ───────
+  function addStamp(idx, x, y, text, size, color) {
+    if (!String(text || "").trim()) throw new Error("スタンプの文字がありません");
+    snapshot();
+    return withPage(idx, (page) => {
+      size = numOr(size, 22);
+      const doc = state.doc;
+      const ent = embedFont(doc, "jp");
+      const m = textMetrics(ent.font, text, size);
+      const padX = size * 0.7, padY = size * 0.4;
+      const w = m.width + padX * 2, h = m.height + padY * 2;
+      const a = page.createAnnotation("FreeText");
+      a.setRect([x - w / 2, y - h / 2, x + w / 2, y + h / 2]);
+      a.setContents(text || "");
+      try { a.setBorderWidth(0); } catch (e) {}
+      a.update();
+      const [cr, cg, cb] = col(color, [0.84, 0.11, 0.13]);
+      const bw = Math.max(1.5, size * 0.09);
+      const r = Math.min(size * 0.4, h / 3);           // corner radius
+      const k = 0.5523 * r;                             // bezier kappa
+      const i0 = bw / 2, i1w = w - bw / 2, i1h = h - bw / 2;
+      const P = (vx, vy) => `${fmt(vx)} ${fmt(vy)}`;
+      const path =
+        `${P(i0 + r, i0)} m ${P(i1w - r, i0)} l ` +
+        `${P(i1w - r + k, i0)} ${P(i1w, i0 + r - k)} ${P(i1w, i0 + r)} c ` +
+        `${P(i1w, i1h - r)} l ${P(i1w, i1h - r + k)} ${P(i1w - r + k, i1h)} ${P(i1w - r, i1h)} c ` +
+        `${P(i0 + r, i1h)} l ${P(i0 + r - k, i1h)} ${P(i0, i1h - r + k)} ${P(i0, i1h - r)} c ` +
+        `${P(i0, i0 + r)} l ${P(i0, i0 + r - k)} ${P(i0 + r - k, i0)} ${P(i0 + r, i0)} c s`;
+      const resources = doc.newDictionary();
+      const fonts = doc.newDictionary();
+      fonts.put(ent.name, ent.ref);
+      resources.put("Font", fonts);
+      const gs = doc.newDictionary();
+      gs.put("CA", 0.9); gs.put("ca", 0.9);
+      const egs = doc.newDictionary();
+      egs.put("GSst", doc.addObject(gs));
+      resources.put("ExtGState", egs);
+      const chunks = [`/GSst gs q ${fmt(cr)} ${fmt(cg)} ${fmt(cb)} RG ${fmt(bw)} w ${path} Q`];
+      chunks.push(`BT /${ent.name} ${fmt(size)} Tf ${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg`);
+      const lines = textLines(text);
+      lines.forEach((line, i) => {
+        const enc = encodeLine(ent.font, line);
+        const lx = (w - enc.width * size) / 2;
+        const ly = h - padY - size * 0.92 - i * m.lineHeight;
+        chunks.push(`1 0 0 1 ${fmt(lx)} ${fmt(ly)} Tm <${enc.hex}> Tj`);
+      });
+      chunks.push("ET");
+      const buf = new mupdf.Buffer();
+      buf.writeLine(chunks.join(" "));
+      a.setAppearance("N", null, [1, 0, 0, 1, 0, 0], [0, 0, w, h], resources, buf);
+      return status();
+    });
+  }
+
+  // ── watermark (page content, semi-transparent, rotated, centered) ────────
+  function addWatermark(opts = {}) {
+    const doc = requireDoc();
+    const text = String(opts.text || "");
+    if (!text.trim()) throw new Error("透かしのテキストがありません");
+    const size = numOr(opts.size, 60);
+    const opacity = Math.max(0.02, Math.min(1, numOr(opts.opacity, 0.25)));
+    const angle = numOr(opts.angle, 45);
+    const color = col(opts.color, [0.62, 0.62, 0.62]);
+    const fontKey = opts.font || "jp";
+    const n = doc.countPages();
+    const pages = (Array.isArray(opts.pages) && opts.pages.length ? opts.pages : [...Array(n).keys()])
+      .filter((p) => p >= 0 && p < n);
+    if (!pages.length) throw new Error("対象ページがありません");
+    snapshot();
+    for (const p of pages) {
+      withPage(p, (page) => {
+        const ent = embedFont(doc, fontKey);
+        const enc = encodeLine(ent.font, text);
+        const wpts = enc.width * size;
+        const b = page.getBounds();
+        const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2 + size * 0.35;
+        const pd = page.getObject();
+        const res = pageResources(doc, pd);
+        resourceSubDict(doc, res, "Font").put(ent.name, ent.ref);
+        const gs = doc.newDictionary();
+        gs.put("CA", opacity); gs.put("ca", opacity);
+        resourceSubDict(doc, res, "ExtGState").put("GSwm", doc.addObject(gs));
+        const rad = angle * Math.PI / 180;
+        const ca = Math.cos(rad), sa = Math.sin(rad);
+        // Display space is y-down: Tm = flip ∘ rotate(angle, visually CCW) ∘
+        // translate(center), with the text origin shifted by -width/2 to center.
+        const ex = cx - (wpts / 2) * ca;
+        const ey = cy + (wpts / 2) * sa;
+        const cm = invertAffine(page.getTransform()).map(fmt).join(" ");
+        const [cr, cg, cb] = color;
+        const stream = `q ${cm} cm /GSwm gs BT /${ent.name} ${fmt(size)} Tf ` +
+          `${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg ` +
+          `${fmt(ca)} ${fmt(-sa)} ${fmt(-sa)} ${fmt(-ca)} ${fmt(ex)} ${fmt(ey)} Tm <${enc.hex}> Tj ET Q`;
+        appendContentStream(doc, pd, stream);
+        page.update();
+      });
+    }
+    return status({ applied: pages.length });
+  }
+
+  // ── page numbers (headers/footers) ───────────────────────────────────────
+  function addPageNumbers(opts = {}) {
+    const doc = requireDoc();
+    const format = opts.format || "n";
+    const pos = opts.pos || "bc";                      // t/b + l/c/r
+    const size = numOr(opts.size, 11);
+    const margin = numOr(opts.margin, 24);
+    const start = numOr(opts.start, 1);
+    const color = col(opts.color, [0.25, 0.25, 0.25]);
+    const fontKey = opts.font || "jp";
+    const n = doc.countPages();
+    snapshot();
+    for (let i = 0; i < n; i++) {
+      withPage(i, (page) => {
+        const num = start + i;
+        const total = n + start - 1;
+        const label = format === "n/N" ? `${num} / ${total}`
+          : format === "-n-" ? `- ${num} -`
+          : format === "page-n" ? `Page ${num}`
+          : String(num);
+        const ent = embedFont(doc, fontKey);
+        const w = encodeLine(ent.font, label).width * size;
+        const b = page.getBounds();
+        const x = pos.endsWith("l") ? b[0] + margin
+          : pos.endsWith("r") ? b[2] - margin - w
+          : (b[0] + b[2]) / 2 - w / 2;
+        const y = pos.startsWith("t") ? b[1] + margin + size : b[3] - margin;
+        insertText(doc, page, x, y, label, size, color, fontKey);
+      });
+    }
+    return status();
+  }
+
+  // ── redaction (permanently black out an area) ────────────────────────────
+  function redactArea(idx, rect) {
+    snapshot();
+    try {
+      return withPage(idx, (page) => {
+        const r = norm(rect[0], rect[1], rect[2], rect[3]);
+        if (r[2] - r[0] < 2 || r[3] - r[1] < 2) throw new Error("範囲が小さすぎます");
+        const red = page.createAnnotation("Redact");
+        red.setRect(r);
+        red.update();
+        page.applyRedactions(true, mupdf.PDFPage.REDACT_IMAGE_PIXELS,
+          mupdf.PDFPage.REDACT_LINE_ART_REMOVE_IF_COVERED, mupdf.PDFPage.REDACT_TEXT_REMOVE);
+        return status();
+      });
+    } catch (e) {
+      rollbackLastSnapshot();
+      throw e;
+    }
+  }
+
+  // ── document metadata (properties) ───────────────────────────────────────
+  const META_KEYS = {
+    title: "info:Title", author: "info:Author", subject: "info:Subject",
+    keywords: "info:Keywords", creator: "info:Creator", producer: "info:Producer",
+    created: "info:CreationDate", modified: "info:ModDate",
+  };
+  function getMetadata() {
+    const doc = requireDoc();
+    const out = {};
+    for (const k in META_KEYS) {
+      try { out[k] = doc.getMetaData(META_KEYS[k]) || ""; } catch (e) { out[k] = ""; }
+    }
+    try { out.format = doc.getMetaData("format") || ""; } catch (e) { out.format = ""; }
+    try { out.encryption = doc.getMetaData("encryption") || ""; } catch (e) { out.encryption = ""; }
+    out.pages = doc.countPages();
+    return out;
+  }
+  function setMetadata(m) {
+    const doc = requireDoc();
+    snapshot();
+    for (const k of ["title", "author", "subject", "keywords"]) {
+      if (m && m[k] !== undefined) doc.setMetaData(META_KEYS[k], String(m[k]));
+    }
+    return status();
+  }
+
   // ── search (display space quads) ─────────────────────────────────────────
   function search(q) {
     const doc = requireDoc();
@@ -806,10 +1033,22 @@ export function createEngine(mupdf) {
   }
 
   // ── save ─────────────────────────────────────────────────────────────────
-  function save() {
+  // opts: { optimize?: bool, userPw?: string, ownerPw?: string }
+  function save(opts = {}) {
     requireDoc();
     try { state.doc.subsetFonts(); } catch (e) {}
-    const bytes = saveBytes("compress");
+    const parts = ["compress"];
+    if (opts.optimize) parts.push("garbage=compact");
+    if (opts.userPw || opts.ownerPw) {
+      // mupdf's option string is comma/equals-delimited — those chars can't be escaped.
+      if (/[,=]/.test(opts.userPw || "") || /[,=]/.test(opts.ownerPw || "")) {
+        throw new Error("パスワードに「,」と「=」は使えません");
+      }
+      parts.push("encrypt=aes-256");
+      parts.push(`user-password=${opts.userPw || ""}`);
+      parts.push(`owner-password=${opts.ownerPw || opts.userPw || ""}`);
+    }
+    const bytes = saveBytes(parts.join(","));
     state.dirty = false;
     return bytes;
   }
@@ -819,6 +1058,7 @@ export function createEngine(mupdf) {
     listFonts, registerFont,
     addAnnot, listAnnots, deleteAnnot, setAnnotRect, addPage, deletePage, deletePages, movePage,
     rotate, importPdf, extract, search, getWidgets, setWidget, undo, redo, save, status,
+    getOutline, addStamp, addWatermark, addPageNumbers, redactArea, getMetadata, setMetadata,
     _state: state,
   };
 }
