@@ -275,6 +275,54 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   }
 }
 
+/* ===== Dropdown menu (文書ツール) ===== */
+.menu-pop { position: fixed; z-index: 700; background: var(--elev); border: 1px solid var(--border); border-radius: 9px; box-shadow: var(--shadow-lg); padding: 6px; min-width: 224px; animation: modalIn .14s ease-out; }
+.menu-pop button { display: flex; width: 100%; text-align: left; gap: 9px; align-items: center; padding: 8px 10px; border: none; background: transparent; color: var(--txt); font-size: 12.5px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: all var(--tr); }
+.menu-pop button:hover { background: var(--pri-l); color: var(--pri); }
+.menu-pop button svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--txt3); }
+.menu-pop button:hover svg { color: var(--pri); }
+.menu-pop .menu-sep { height: 1px; background: var(--border); margin: 5px 4px; }
+
+/* ===== Sidebar tabs (ページ / しおり) ===== */
+.sidebar-tabs { display: flex; gap: 2px; padding: 8px 8px 0; }
+.sidebar-tabs button { flex: 1; height: 28px; border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--txt3); font-size: 11px; font-weight: 700; cursor: pointer; transition: all var(--tr); }
+.sidebar-tabs button.active { color: var(--pri); border-bottom-color: var(--pri); }
+.sidebar-tabs button:hover:not(.active) { color: var(--txt2); }
+.outline-list { flex: 1; overflow-y: auto; padding: 8px 4px; display: none; }
+.sidebar.tab-outline .outline-list { display: block; }
+.sidebar.tab-outline .page-list, .sidebar.tab-outline .sidebar-head, .sidebar.tab-outline .sidebar-footer { display: none; }
+.outline-item { padding: 7px 10px; border-radius: 6px; font-size: 12px; color: var(--txt2); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all var(--tr); }
+.outline-item:hover { background: var(--pri-l); color: var(--pri); }
+.outline-item.no-link { cursor: default; color: var(--txt3); }
+.outline-item.no-link:hover { background: transparent; color: var(--txt3); }
+.outline-empty { font-size: 12px; color: var(--txt3); text-align: center; padding: 30px 10px; }
+
+/* ===== Stamp presets ===== */
+.stamp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.stamp-chip { padding: 7px 14px; border: 2px solid var(--border); border-radius: 7px; background: var(--surface-h); font-size: 13px; font-weight: 700; cursor: pointer; transition: all var(--tr); color: var(--txt2); }
+.stamp-chip:hover { border-color: var(--border-s); }
+.stamp-chip.active { border-color: var(--pri); color: var(--pri); background: var(--pri-l); }
+
+/* ===== Signature pad ===== */
+.sig-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.sig-tabs button { padding: 7px 16px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-h); font-size: 12px; font-weight: 600; color: var(--txt2); cursor: pointer; transition: all var(--tr); }
+.sig-tabs button.active { background: var(--pri-l); border-color: rgba(215,25,32,.3); color: var(--pri); }
+.sig-pad { width: 100%; height: 180px; border: 1.5px dashed var(--border-s); border-radius: 8px; background: #fff; cursor: crosshair; touch-action: none; display: block; }
+.sig-hint { font-size: 11px; color: var(--txt3); margin: 6px 0 0; }
+.sig-type-preview { width: 100%; height: 110px; border: 1.5px dashed var(--border-s); border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 44px; color: #1a1a5e; font-family: "Snell Roundhand", "Savoye LET", "Brush Script MT", cursive; overflow: hidden; }
+
+/* ===== Redact preview ===== */
+.overlay .prev.redact-box { fill: rgba(0,0,0,.55); stroke: #000; stroke-width: 1.5; }
+
+/* ===== Watermark/property dialog helpers ===== */
+.dlg-grid { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: center; margin-bottom: 12px; }
+.dlg-grid label { font-size: 12px; font-weight: 600; color: var(--txt2); white-space: nowrap; }
+.dlg-grid input[type="text"], .dlg-grid select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; margin: 0; }
+.dlg-grid input[type="text"]:focus, .dlg-grid select:focus { border-color: var(--pri); }
+.dlg-grid input[type="number"] { width: 80px; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+.dlg-grid input[type="range"] { accent-color: var(--pri); }
+.dlg-info { font-size: 11px; color: var(--txt3); line-height: 1.7; background: var(--surface-h); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+
 /* ===== Engine loading overlay ===== */
 .engine-loading { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
   background: var(--bg); transition: opacity .35s ease; }
@@ -371,12 +419,24 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
     <button class="tbtn tool icon-only" data-tool="ellipse" onclick="setTool('ellipse')" title="楕円"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="8"/></svg></button>
     <button class="tbtn tool icon-only" data-tool="line" onclick="setTool('line')" title="直線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg></button>
   </div>
+  <div class="sep"></div>
+
+  <!-- Acrobat-style tools -->
+  <div class="toolbar-group acro-tools">
+    <button class="tbtn tool icon-only" data-tool="stamp" onclick="startStamp()" title="スタンプ（承認済み・下書きなど）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M19.27 13.73A2.5 2.5 0 0 0 17.5 13H15l1-6a3.9 3.9 0 0 0-1.17-2.83A3.9 3.9 0 0 0 12 3a3.9 3.9 0 0 0-2.83 1.17A3.9 3.9 0 0 0 8 7l1 6H6.5a2.5 2.5 0 0 0-2.5 2.5V18h16v-2.5a2.5 2.5 0 0 0-.73-1.77z"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="signature" onclick="signatureDialog()" title="署名（手書き / テキスト）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 19c-2 1.5-4-1-6 0s-2.5 1.7-4 1"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+    <button class="tbtn tool icon-only" data-tool="redact" onclick="setTool('redact')" title="墨消し（範囲を黒塗りして内容を完全削除）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" fill="currentColor" stroke="none" rx="1"/><path d="M3 4h18M3 20h18"/></svg></button>
+  </div>
 
   <div class="spacer"></div>
   <span class="doc-title" id="docTitle"></span>
   <div class="sep"></div>
 
   <div class="toolbar-group">
+    <button class="tbtn" id="btnDocMenu" onclick="toggleDocMenu(event)" title="文書ツール（透かし・ページ番号・保護・最適化など）">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>文書
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:11px;height:11px"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
     <button class="tbtn icon-only" id="btnSearch" onclick="togglePanel('search')" title="検索 (⌘F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
     <button class="tbtn icon-only" id="btnForms" onclick="togglePanel('forms')" title="フォーム入力"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
     <div class="sep"></div>
@@ -408,6 +468,11 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 <div class="main-layout" id="mainLayout">
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
+    <div class="sidebar-tabs">
+      <button id="tabPages" class="active" onclick="setSidebarTab('pages')">ページ</button>
+      <button id="tabOutline" onclick="setSidebarTab('outline')">しおり</button>
+    </div>
+    <div class="outline-list" id="outlineList"></div>
     <div class="sidebar-head">
       <h2>ページ</h2>
       <div class="sidebar-actions">
@@ -633,8 +698,8 @@ async function needEngine() {
   if (!engine) throw new Error('PDFエンジンが利用できません');
 }
 
-function downloadBytes(bytes, name) {
-  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+function downloadBytes(bytes, name, mime) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime || 'application/pdf' }));
   const a = document.createElement('a'); a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   // Keep the blob alive until the download is certainly handed off. A fixed
@@ -690,7 +755,14 @@ async function api(path, body) {
     const fonts = await ensureFontsLoaded();
     return { ok: true, fonts: fonts.map(([id, label]) => ({ id, label })) };
   }
-  if (p === '/api/open') return engine.open(b.bytes, b.filename);
+  if (p === '/api/open') return engine.open(b.bytes, b.filename, b.password);
+  if (p === '/api/outline') return engine.getOutline();
+  if (p === '/api/stamp') return engine.addStamp(b.page, b.x, b.y, b.text, b.size, b.color);
+  if (p === '/api/watermark') return engine.addWatermark(b);
+  if (p === '/api/page_numbers') return engine.addPageNumbers(b);
+  if (p === '/api/redact') return engine.redactArea(b.page, b.rect);
+  if (p === '/api/metadata') return engine.getMetadata();
+  if (p === '/api/set_metadata') return engine.setMetadata(b);
   if (p.startsWith('/api/text/')) return engine.getText(idx);
   if (p === '/api/edit_text') return engine.editText(b.page, b.bbox, b.origin, b.new_text, b.font_size, b.color, b.font);
   if (p === '/api/add_text') return engine.addText(b.page, b.x, b.y, b.text, b.size, b.color, b.bg, b.font);
@@ -782,13 +854,28 @@ async function openByPath(path) {
   try { onOpened(await api('/api/open_path', { path })); }
   catch (e) { toast(e.message, 'err'); }
 }
-async function loadPdf(file) {
+async function loadPdf(file, password) {
   toast('読み込み中...', 'info');
   try {
     await needEngine();
     const bytes = new Uint8Array(await file.arrayBuffer());
-    onOpened(await api('/api/open', { bytes, filename: file.name }));
-  } catch (e) { toast('ファイルを開けません: ' + e.message, 'err'); }
+    onOpened(await api('/api/open', { bytes, filename: file.name, password }));
+  } catch (e) {
+    if (e.needPassword) { promptPdfPassword(file, password ? e.message : null); return; }
+    toast('ファイルを開けません: ' + e.message, 'err');
+  }
+}
+// Password-protected PDF: ask, then retry the open with the entered password.
+function promptPdfPassword(file, errMsg) {
+  openDialog(`<h3>パスワード付きPDF</h3>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">${escHtml(errMsg || 'このPDFはパスワードで保護されています。')} パスワードを入力してください。</p>
+    <input type="password" id="dlgPdfPw" placeholder="パスワード" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;outline:none;margin-bottom:8px">`,
+    (root) => {
+      const pw = root.querySelector('#dlgPdfPw').value;
+      if (!pw) return false;
+      loadPdf(file, pw);
+      return true;
+    }, { okLabel: '開く', focus: '#dlgPdfPw' });
 }
 function onOpened(j) {
   S.cur = 0;
@@ -802,9 +889,36 @@ function onOpened(j) {
   applyStatus(j);
   $('#emptyState').style.display = 'none';
   $('#btnSave').disabled = false; $('#btnSaveAs').disabled = false;
-  renderPageList(); renderPage();
+  renderPageList(); renderPage(); renderOutline();
   if (S.panel) refreshPanel();
   toast(`${j.filename || 'PDF'} (${j.pages}ページ)`, 'ok');
+}
+
+// ── Sidebar tabs (ページ / しおり) ──
+function setSidebarTab(tab) {
+  $('#sidebar').classList.toggle('tab-outline', tab === 'outline');
+  $('#tabPages').classList.toggle('active', tab === 'pages');
+  $('#tabOutline').classList.toggle('active', tab === 'outline');
+  if (tab === 'outline') renderOutline();
+}
+async function renderOutline() {
+  const box = $('#outlineList');
+  if (!box) return;
+  if (S.pages === 0) { box.innerHTML = '<div class="outline-empty">PDFを開いてください</div>'; return; }
+  try {
+    const j = await api('/api/outline');
+    if (!j.items || !j.items.length) { box.innerHTML = '<div class="outline-empty">しおり（目次）はありません</div>'; return; }
+    box.innerHTML = '';
+    j.items.forEach(it => {
+      const el = document.createElement('div');
+      el.className = 'outline-item' + (it.page == null ? ' no-link' : '');
+      el.style.paddingLeft = (10 + it.depth * 14) + 'px';
+      el.textContent = it.title;
+      el.title = it.title + (it.page != null ? `（P${it.page + 1}）` : '');
+      if (it.page != null) el.onclick = () => gotoPage(it.page);
+      box.appendChild(el);
+    });
+  } catch (e) { box.innerHTML = '<div class="outline-empty">しおりを読み込めません</div>'; }
 }
 
 $('#fileInput').addEventListener('change', async e => {
@@ -961,7 +1075,7 @@ function afterStructural(j) {
   applyStatus(j);
   S.sel = null;                       // indices shifted — drop any selection
   S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
-  invalidateAllThumbs(); renderPageList(); renderPage();
+  invalidateAllThumbs(); renderPageList(); renderPage(); renderOutline();
   if (S.panel) refreshPanel();
 }
 // content edit on the current page only: refresh just this page + its thumbnail
@@ -1090,8 +1204,8 @@ function showTextEditDialog(span) {
 }
 
 // ── Tools ──
-const DRAG_TOOLS = ['rect', 'ellipse', 'line', 'highlight', 'underline', 'strikeout', 'arrow'];
-const TOOL_LABELS = { addText: 'テキスト追加', addImage: '画像挿入', eyedropper: 'スポイト', rect: '四角', ellipse: '楕円', line: '直線', highlight: 'ハイライト', underline: '下線', strikeout: '取り消し線', ink: 'フリーハンド', arrow: '矢印', note: 'コメント' };
+const DRAG_TOOLS = ['rect', 'ellipse', 'line', 'highlight', 'underline', 'strikeout', 'arrow', 'redact'];
+const TOOL_LABELS = { addText: 'テキスト追加', addImage: '画像挿入', eyedropper: 'スポイト', rect: '四角', ellipse: '楕円', line: '直線', highlight: 'ハイライト', underline: '下線', strikeout: '取り消し線', ink: 'フリーハンド', arrow: '矢印', note: 'コメント', redact: '墨消し', stamp: 'スタンプ' };
 const DEFAULT_COLORS = { highlight: '#ffd400', underline: '#e11d48', strikeout: '#e11d48', ink: '#1e293b', arrow: '#e11d48', rect: '#1e293b', ellipse: '#1e293b', line: '#1e293b', note: '#fde047' };
 
 function setTool(tool) {
@@ -1102,9 +1216,9 @@ function setTool(tool) {
   $$('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   if (tool === 'addImage') { $('#imgInput').click(); }
 
-  // tool options bar
+  // tool options bar (redact has no options — the box is always black)
   const opts = $('#toolOptions');
-  const showOpts = DRAG_TOOLS.includes(tool) || tool === 'ink' || tool === 'note' || tool === 'eyedropper';
+  const showOpts = (DRAG_TOOLS.includes(tool) && tool !== 'redact') || tool === 'ink' || tool === 'note' || tool === 'eyedropper';
   opts.classList.toggle('show', showOpts);
   $('#mainLayout').classList.toggle('has-options', showOpts);
   if (showOpts) {
@@ -1123,6 +1237,8 @@ function setTool(tool) {
                tool === 'select' ? '画像・図形・追加文字をクリックして選択 → ドラッグで移動・四隅でリサイズ' :
                tool === 'eyedropper' ? 'ページ上の色をクリックして現在色に設定' :
                tool === 'erase' ? '削除したい注釈（ハイライト/手書き/コメント等）をクリック' :
+               tool === 'redact' ? '黒塗りしたい範囲をドラッグ（適用すると内容は完全に削除されます）' :
+               tool === 'stamp' ? 'ページ上をクリックしてスタンプを配置' :
                DRAG_TOOLS.includes(tool) ? 'ページ上でドラッグ' : '';
   if (hint) toast(hint, 'info');
 }
@@ -1140,7 +1256,7 @@ function applyToolCursor() {
   if (!S.mode) return;
   if (S.mode === 'select') stage.classList.add('tool-select');
   else if (S.mode === 'eyedropper') stage.classList.add('tool-eyedropper');
-  else if (S.mode === 'addText' || S.mode === 'note') stage.classList.add('tool-text');
+  else if (S.mode === 'addText' || S.mode === 'note' || S.mode === 'stamp') stage.classList.add('tool-text');
   else stage.classList.add('tool-draw');
 }
 // tool options listeners
@@ -1244,6 +1360,7 @@ async function onStageMouseDown(e) {
   if (S.mode === 'eyedropper') { pickColorAt(p); return; }
   if (S.mode === 'addText') { clearTool(); showAddTextDialog(p.x, p.y); return; }
   if (S.mode === 'note') { clearTool(); showNoteDialog(p.x, p.y); return; }
+  if (S.mode === 'stamp') { await placeStamp(p); return; }
   if (S.mode === 'addImage') {
     if (!S.imgFile) return;
     S.draw = { start: p, cur: p, page: S.cur };   // drag out the placement box
@@ -1278,6 +1395,15 @@ async function onStageMouseUp(e) {
   const s = draw.start, p = stageCoord(e);
   if (Math.abs(p.x - s.x) < 3 && Math.abs(p.y - s.y) < 3) return;
   const box = { x0: Math.min(s.x, p.x), y0: Math.min(s.y, p.y), x1: Math.max(s.x, p.x), y1: Math.max(s.y, p.y) };
+  if (S.mode === 'redact') {
+    confirmDialog('この範囲を墨消し（黒塗り）しますか？範囲内のテキスト・画像は完全に削除されます。', async () => {
+      try {
+        const j = await api('/api/redact', { page: draw.page, rect: [box.x0, box.y0, box.x1, box.y1] });
+        afterContentEdit(j); toast('墨消ししました（⌘Zで取り消せます）', 'ok');
+      } catch (err) { toast('墨消しに失敗: ' + err.message, 'err'); }
+    }, '墨消し');
+    return;
+  }
   try {
     let j;
     if (['highlight', 'underline', 'strikeout'].includes(S.mode)) {
@@ -1309,6 +1435,7 @@ function drawShapePreview() {
   if (S.mode === 'rect') svgAdd('rect', { x: x0, y: y0, width: w, height: h, fill: S.toolFill ? col : 'none', 'fill-opacity': .3, stroke: col, 'stroke-width': S.toolWidth });
   else if (S.mode === 'ellipse') svgAdd('ellipse', { cx: x0 + w/2, cy: y0 + h/2, rx: w/2, ry: h/2, fill: S.toolFill ? col : 'none', 'fill-opacity': .3, stroke: col, 'stroke-width': S.toolWidth });
   else if (S.mode === 'line' || S.mode === 'arrow') svgAdd('line', { x1: s.x*z, y1: s.y*z, x2: c.x*z, y2: c.y*z, stroke: col, 'stroke-width': S.toolWidth, 'stroke-linecap': 'round' });
+  else if (S.mode === 'redact') { const el = svgAdd('rect', { x: x0, y: y0, width: w, height: h }); if (el) el.classList.add('redact-box'); }
   else if (S.mode === 'highlight') svgAdd('rect', { x: x0, y: y0, width: w, height: h, fill: col, 'fill-opacity': .35 });
   else if (S.mode === 'underline') svgAdd('line', { x1: x0, y1: y0 + h, x2: x0 + w, y2: y0 + h, stroke: col, 'stroke-width': 2 });
   else if (S.mode === 'strikeout') svgAdd('line', { x1: x0, y1: y0 + h/2, x2: x0 + w, y2: y0 + h/2, stroke: col, 'stroke-width': 2 });
@@ -1678,6 +1805,377 @@ async function renderFormsPanel() {
   } catch (e) { body.innerHTML = `<div class="rp-empty">${escHtml(e.message)}</div>`; }
 }
 
+// ── Stamp（Acrobatライクなゴム印） ──
+const STAMP_PRESETS = [
+  ['承認済み', '#c8281e'], ['確認済み', '#1a7f37'], ['下書き', '#6b7280'],
+  ['社外秘', '#c8281e'], ['至急', '#c8281e'], ['完了', '#1a7f37'],
+  ['回覧', '#1d4ed8'], ['受領', '#1d4ed8'],
+];
+S.stampCfg = { text: '承認済み', color: '#c8281e', size: 22 };
+function enterStampMode() {
+  S.mode = 'stamp';
+  $$('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === 'stamp'));
+  $('#toolOptions').classList.remove('show');
+  $('#mainLayout').classList.remove('has-options');
+  applyToolCursor();
+  toast(`ページ上をクリックして「${S.stampCfg.text}」を配置（Escで終了）`, 'info');
+}
+function startStamp() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  if (S.mode === 'stamp') { clearTool(); return; }
+  const chips = STAMP_PRESETS.map(([t, c], i) =>
+    `<button type="button" class="stamp-chip${t === S.stampCfg.text ? ' active' : ''}" data-text="${escAttr(t)}" data-color="${escAttr(c)}" style="color:${escAttr(c)}">${escHtml(t)}</button>`).join('');
+  openDialog(`<h3>スタンプ</h3>
+    <div class="stamp-chips">${chips}</div>
+    <div class="dialog-row"><label>カスタム:</label><input type="text" id="dlgStampText" placeholder="任意の文字（プリセットの代わり）" style="flex:1;margin-bottom:0"></div>
+    <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgStampSize" value="${S.stampCfg.size}" min="8" max="72" step="1">
+      <label>色:</label><input type="color" id="dlgStampColor" value="${escAttr(S.stampCfg.color)}"></div>`,
+    (root) => {
+      const custom = root.querySelector('#dlgStampText').value.trim();
+      const active = root.querySelector('.stamp-chip.active');
+      const text = custom || (active ? active.dataset.text : S.stampCfg.text);
+      if (!text) { toast('スタンプの文字を選択または入力してください', 'err'); return false; }
+      S.stampCfg = {
+        text,
+        color: root.querySelector('#dlgStampColor').value,
+        size: parseFloat(root.querySelector('#dlgStampSize').value) || 22,
+      };
+      enterStampMode();
+      return true;
+    }, { okLabel: '配置を開始', focus: '#dlgStampText' });
+  // chip click: select + adopt its color (custom text field cleared)
+  document.querySelectorAll('.stamp-chip').forEach(ch => ch.onclick = () => {
+    document.querySelectorAll('.stamp-chip').forEach(c => c.classList.remove('active'));
+    ch.classList.add('active');
+    const dlg = ch.closest('.dialog');
+    dlg.querySelector('#dlgStampColor').value = ch.dataset.color;
+    dlg.querySelector('#dlgStampText').value = '';
+  });
+}
+async function placeStamp(p) {
+  try {
+    const j = await api('/api/stamp', { page: S.cur, x: p.x, y: p.y, text: S.stampCfg.text, size: S.stampCfg.size, color: hexToRgb01(S.stampCfg.color) });
+    afterContentEdit(j);
+    toast('スタンプを配置しました（続けてクリックで追加 / Escで終了）', 'ok');
+  } catch (e) { toast('スタンプに失敗: ' + e.message, 'err'); }
+}
+
+// ── Signature（手書き / テキスト署名を透過PNGにして配置） ──
+function signatureDialog() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  openDialog(`<h3>署名を作成</h3>
+    <div class="sig-tabs">
+      <button type="button" id="sigTabDraw" class="active">手書き</button>
+      <button type="button" id="sigTabType">テキスト</button>
+    </div>
+    <div id="sigDrawWrap">
+      <canvas class="sig-pad" id="sigPad" width="920" height="360"></canvas>
+      <div class="sig-hint">マウス/トラックパッドで署名を描いてください <button type="button" class="mini-btn" id="sigClear" style="height:26px;padding:0 10px;margin-left:8px">クリア</button></div>
+    </div>
+    <div id="sigTypeWrap" style="display:none">
+      <input type="text" id="sigTypeText" placeholder="氏名を入力..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;outline:none;margin-bottom:8px">
+      <div class="sig-type-preview" id="sigTypePreview"></div>
+    </div>
+    <div class="dialog-row" style="margin-top:12px"><label>インク色:</label><input type="color" id="sigColor" value="#1a1a5e"></div>`,
+    async (root) => {
+      const isDraw = root.querySelector('#sigTabDraw').classList.contains('active');
+      const color = root.querySelector('#sigColor').value;
+      let blob = null;
+      if (isDraw) {
+        blob = exportSigCanvas(root.querySelector('#sigPad'), color);
+        if (!blob) { toast('署名を描いてください', 'err'); return false; }
+      } else {
+        const text = root.querySelector('#sigTypeText').value.trim();
+        if (!text) { toast('氏名を入力してください', 'err'); return false; }
+        blob = typedSigBlob(text, color);
+      }
+      const b = await blob;
+      if (!b) { toast('署名の生成に失敗しました', 'err'); return false; }
+      S.imgFile = new File([b], 'signature.png', { type: 'image/png' });
+      S.mode = 'addImage';
+      $$('.tool').forEach(bt => bt.classList.toggle('active', bt.dataset.tool === 'signature'));
+      applyToolCursor();
+      toast('ページ上でドラッグして署名を配置（短いクリックで既定サイズ）', 'info');
+      return true;
+    }, { okLabel: '配置へ' });
+  initSigPad();
+}
+function initSigPad() {
+  const pad = document.getElementById('sigPad');
+  const tabDraw = document.getElementById('sigTabDraw');
+  const tabType = document.getElementById('sigTabType');
+  const typeText = document.getElementById('sigTypeText');
+  const preview = document.getElementById('sigTypePreview');
+  if (!pad) return;
+  const ctx = pad.getContext('2d');
+  ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#000';
+  pad._bounds = null; pad._drawn = false;
+  let drawing = false, last = null;
+  const pos = (e) => {
+    const r = pad.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * pad.width / r.width, y: (e.clientY - r.top) * pad.height / r.height };
+  };
+  const grow = (p) => {
+    const b = pad._bounds;
+    pad._bounds = b ? [Math.min(b[0], p.x), Math.min(b[1], p.y), Math.max(b[2], p.x), Math.max(b[3], p.y)] : [p.x, p.y, p.x, p.y];
+  };
+  pad.addEventListener('pointerdown', e => { drawing = true; last = pos(e); grow(last); pad.setPointerCapture(e.pointerId); });
+  pad.addEventListener('pointermove', e => {
+    if (!drawing) return;
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p; grow(p); pad._drawn = true;
+  });
+  pad.addEventListener('pointerup', () => { drawing = false; });
+  document.getElementById('sigClear').onclick = () => { ctx.clearRect(0, 0, pad.width, pad.height); pad._bounds = null; pad._drawn = false; };
+  const setTab = (draw) => {
+    tabDraw.classList.toggle('active', draw); tabType.classList.toggle('active', !draw);
+    document.getElementById('sigDrawWrap').style.display = draw ? '' : 'none';
+    document.getElementById('sigTypeWrap').style.display = draw ? 'none' : '';
+    if (!draw) typeText.focus();
+  };
+  tabDraw.onclick = () => setTab(true);
+  tabType.onclick = () => setTab(false);
+  typeText.addEventListener('input', () => { preview.textContent = typeText.value; });
+}
+// Trim the drawn signature to its ink bounds and recolor to the chosen ink.
+function exportSigCanvas(pad, color) {
+  if (!pad || !pad._drawn || !pad._bounds) return null;
+  const m = 14;
+  const [x0, y0, x1, y1] = pad._bounds;
+  const w = Math.max(1, Math.ceil(x1 - x0) + m * 2), h = Math.max(1, Math.ceil(y1 - y0) + m * 2);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(pad, x0 - m, y0 - m, w, h, 0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = color; ctx.fillRect(0, 0, w, h);
+  return new Promise(res => cv.toBlob(res, 'image/png'));
+}
+function typedSigBlob(text, color) {
+  const size = 96;
+  const cv = document.createElement('canvas');
+  const ctx0 = cv.getContext('2d');
+  const font = `${size}px "Snell Roundhand", "Savoye LET", "Brush Script MT", cursive`;
+  ctx0.font = font;
+  const w = Math.ceil(ctx0.measureText(text).width) + 40;
+  cv.width = w; cv.height = Math.ceil(size * 1.6);
+  const ctx = cv.getContext('2d');
+  ctx.font = font; ctx.fillStyle = color; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 20, cv.height / 2);
+  return new Promise(res => cv.toBlob(res, 'image/png'));
+}
+
+// ── 文書メニュー（透かし・ページ番号・プロパティ・保護・最適化・書き出し・印刷） ──
+let docMenuEl = null;
+function closeDocMenu() { if (docMenuEl) { docMenuEl.remove(); docMenuEl = null; } }
+function toggleDocMenu(e) {
+  if (docMenuEl) { closeDocMenu(); return; }
+  const items = [
+    ['透かしを追加...', 'watermarkDialog', 'M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z'],
+    ['ページ番号を追加...', 'pageNumbersDialog', 'M4 9h16M4 15h16M10 3L8 21M16 3l-2 18'],
+    ['sep'],
+    ['文書のプロパティ...', 'propertiesDialog', 'M12 16v-4M12 8h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z'],
+    ['パスワード保護して保存...', 'passwordSaveDialog', 'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zM7 11V7a5 5 0 0 1 10 0v4'],
+    ['最適化して保存（軽量化）', 'optimizeSave', 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3'],
+    ['sep'],
+    ['このページをPNG書き出し', 'exportPagePng', 'M3 3h18v18H3zM8.5 8.5h.01M21 15l-5-5L5 21'],
+    ['印刷...', 'printPdf', 'M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z'],
+  ];
+  const pop = document.createElement('div');
+  pop.className = 'menu-pop';
+  pop.innerHTML = items.map(it => it[0] === 'sep'
+    ? '<div class="menu-sep"></div>'
+    : `<button data-fn="${it[1]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${it[2]}"/></svg>${escHtml(it[0])}</button>`).join('');
+  document.body.appendChild(pop);
+  const r = $('#btnDocMenu').getBoundingClientRect();
+  pop.style.top = (r.bottom + 6) + 'px';
+  pop.style.left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 10) + 'px';
+  pop.addEventListener('click', ev => {
+    const btn = ev.target.closest('button[data-fn]');
+    if (!btn) return;
+    closeDocMenu();
+    window[btn.dataset.fn]();
+  });
+  docMenuEl = pop;
+  setTimeout(() => document.addEventListener('click', function onDoc(ev) {
+    if (docMenuEl && !docMenuEl.contains(ev.target) && !ev.target.closest('#btnDocMenu')) closeDocMenu();
+    if (!docMenuEl) document.removeEventListener('click', onDoc);
+  }), 0);
+}
+
+function watermarkDialog() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  openDialog(`<h3>透かしを追加</h3>
+    <div class="dlg-grid">
+      <label>テキスト</label><input type="text" id="wmText" placeholder="社外秘 / DRAFT / コピー禁止 など" value="社外秘">
+      <label>サイズ</label><div><input type="number" id="wmSize" value="60" min="8" max="300"> pt</div>
+      <label>角度</label><div><input type="number" id="wmAngle" value="45" min="-90" max="90" step="5"> °（45=斜め / 0=水平）</div>
+      <label>不透明度</label><div style="display:flex;align-items:center;gap:8px"><input type="range" id="wmOpacity" min="5" max="100" value="25" style="flex:1"><span id="wmOpacityVal">25%</span></div>
+      <label>色</label><input type="color" id="wmColor" value="#9ca3af" style="width:44px;height:32px;padding:2px;border:1.5px solid var(--border);border-radius:6px">
+      <label>対象</label><select id="wmPages"><option value="all">すべてのページ</option><option value="cur">現在のページのみ</option></select>
+    </div>
+    <div class="dlg-info">透かしはページの内容として埋め込まれます（注釈ではないため、閲覧側で消せません）。⌘Zで取り消せます。</div>`,
+    async (root) => {
+      const text = root.querySelector('#wmText').value.trim();
+      if (!text) { toast('テキストを入力してください', 'err'); return false; }
+      try {
+        const j = await api('/api/watermark', {
+          text,
+          size: parseFloat(root.querySelector('#wmSize').value) || 60,
+          angle: parseFloat(root.querySelector('#wmAngle').value) || 0,
+          opacity: (parseInt(root.querySelector('#wmOpacity').value, 10) || 25) / 100,
+          color: hexToRgb01(root.querySelector('#wmColor').value),
+          pages: root.querySelector('#wmPages').value === 'cur' ? [S.cur] : null,
+        });
+        afterStructural(j);
+        toast(`${j.applied}ページに透かしを追加しました`, 'ok');
+      } catch (e) { toast('透かしに失敗: ' + e.message, 'err'); }
+      return true;
+    }, { okLabel: '追加', focus: '#wmText', selectAll: true });
+  const op = document.getElementById('wmOpacity');
+  op.addEventListener('input', () => document.getElementById('wmOpacityVal').textContent = op.value + '%');
+}
+
+function pageNumbersDialog() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  openDialog(`<h3>ページ番号を追加</h3>
+    <div class="dlg-grid">
+      <label>形式</label><select id="pnFormat">
+        <option value="n">1, 2, 3...</option>
+        <option value="n/N" selected>1 / 10</option>
+        <option value="-n-">- 1 -</option>
+        <option value="page-n">Page 1</option>
+      </select>
+      <label>位置</label><select id="pnPos">
+        <option value="bc" selected>下・中央</option><option value="br">下・右</option><option value="bl">下・左</option>
+        <option value="tc">上・中央</option><option value="tr">上・右</option><option value="tl">上・左</option>
+      </select>
+      <label>サイズ</label><div><input type="number" id="pnSize" value="11" min="6" max="36"> pt</div>
+      <label>余白</label><div><input type="number" id="pnMargin" value="24" min="6" max="100"> pt</div>
+      <label>開始番号</label><input type="number" id="pnStart" value="1" min="0" style="width:80px">
+    </div>
+    <div class="dlg-info">全ページの内容として書き込まれます。⌘Zで取り消せます。</div>`,
+    async (root) => {
+      try {
+        const j = await api('/api/page_numbers', {
+          format: root.querySelector('#pnFormat').value,
+          pos: root.querySelector('#pnPos').value,
+          size: parseFloat(root.querySelector('#pnSize').value) || 11,
+          margin: parseFloat(root.querySelector('#pnMargin').value) || 24,
+          start: parseInt(root.querySelector('#pnStart').value, 10) || 1,
+        });
+        afterStructural(j);
+        toast('ページ番号を追加しました', 'ok');
+      } catch (e) { toast('ページ番号に失敗: ' + e.message, 'err'); }
+      return true;
+    }, { okLabel: '追加' });
+}
+
+async function propertiesDialog() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  let m;
+  try { m = await api('/api/metadata'); } catch (e) { toast(e.message, 'err'); return; }
+  openDialog(`<h3>文書のプロパティ</h3>
+    <div class="dlg-grid">
+      <label>タイトル</label><input type="text" id="mdTitle" value="${escAttr(m.title)}">
+      <label>作成者</label><input type="text" id="mdAuthor" value="${escAttr(m.author)}">
+      <label>サブタイトル</label><input type="text" id="mdSubject" value="${escAttr(m.subject)}">
+      <label>キーワード</label><input type="text" id="mdKeywords" value="${escAttr(m.keywords)}">
+    </div>
+    <div class="dlg-info">
+      ページ数: ${m.pages} ／ 形式: ${escHtml(m.format || '不明')}<br>
+      暗号化: ${escHtml(m.encryption || 'なし')}<br>
+      アプリケーション: ${escHtml(m.creator || '-')} ／ ${escHtml(m.producer || '-')}<br>
+      作成日: ${escHtml(m.created || '-')} ／ 更新日: ${escHtml(m.modified || '-')}
+    </div>`,
+    async (root) => {
+      try {
+        const j = await api('/api/set_metadata', {
+          title: root.querySelector('#mdTitle').value,
+          author: root.querySelector('#mdAuthor').value,
+          subject: root.querySelector('#mdSubject').value,
+          keywords: root.querySelector('#mdKeywords').value,
+        });
+        applyStatus(j);
+        toast('プロパティを更新しました', 'ok');
+      } catch (e) { toast(e.message, 'err'); }
+      return true;
+    }, { okLabel: '保存', focus: '#mdTitle' });
+}
+
+function passwordSaveDialog() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  openDialog(`<h3>パスワード保護して保存</h3>
+    <div class="dlg-grid">
+      <label>閲覧パスワード</label><input type="text" id="pwUser" placeholder="開くときに必要（必須）" autocomplete="off">
+      <label>権限パスワード</label><input type="text" id="pwOwner" placeholder="編集・印刷制限の解除用（省略可）" autocomplete="off">
+    </div>
+    <div class="dlg-info">AES-256で暗号化して保存（ダウンロード）します。「,」と「=」は使えません。パスワードを忘れると開けなくなるためご注意ください。</div>`,
+    (root) => {
+      const userPw = root.querySelector('#pwUser').value;
+      const ownerPw = root.querySelector('#pwOwner').value;
+      if (!userPw && !ownerPw) { toast('パスワードを入力してください', 'err'); return false; }
+      try {
+        const bytes = engine.save({ userPw, ownerPw });
+        applyStatus(engine.status());
+        downloadBytes(bytes, defaultName().replace(/\.pdf$/i, '') + '-protected.pdf');
+        toast('パスワード付きPDFを保存しました', 'ok');
+      } catch (e) { toast('保存に失敗: ' + e.message, 'err'); return false; }
+      return true;
+    }, { okLabel: '保存', focus: '#pwUser' });
+}
+
+function optimizeSave() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  try {
+    const before = engine.save().length;          // current compressed size
+    const bytes = engine.save({ optimize: true });
+    applyStatus(engine.status());
+    downloadBytes(bytes, defaultName());
+    const kb = n => (n / 1024).toFixed(0) + 'KB';
+    toast(`最適化して保存しました（${kb(before)} → ${kb(bytes.length)}）`, 'ok');
+  } catch (e) { toast('最適化に失敗: ' + e.message, 'err'); }
+}
+
+function exportPagePng() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  try {
+    const png = engine.renderPNG(S.cur, 3);       // 3x ≒ 216dpi
+    const base = defaultName().replace(/\.pdf$/i, '');
+    downloadBytes(png, `${base}-p${S.cur + 1}.png`, 'image/png');
+    toast(`ページ ${S.cur + 1} をPNGで書き出しました`, 'ok');
+  } catch (e) { toast('書き出しに失敗: ' + e.message, 'err'); }
+}
+
+async function printPdf() {
+  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
+  const win = window.open('', '_blank');
+  if (!win) { toast('ポップアップがブロックされました。許可してください', 'err'); return; }
+  toast('印刷用にページを準備中...', 'info');
+  win.document.write('<!DOCTYPE html><html><head><title>印刷 - ' + escHtml(S.filename || 'PDF') +
+    '</title><style>@page{margin:0}body{margin:0}img{display:block;width:100%;page-break-after:always}</style></head><body></body></html>');
+  win.document.close();
+  const urls = [];
+  try {
+    const imgs = [];
+    for (let i = 0; i < S.pages; i++) {
+      const url = URL.createObjectURL(new Blob([engine.renderPNG(i, 2)], { type: 'image/png' }));
+      urls.push(url);
+      const img = win.document.createElement('img');
+      img.src = url;
+      win.document.body.appendChild(img);
+      imgs.push(img);
+    }
+    await Promise.all(imgs.map(im => im.decode().catch(() => {})));
+    win.focus();
+    win.print();
+  } catch (e) {
+    toast('印刷準備に失敗: ' + e.message, 'err');
+  } finally {
+    setTimeout(() => urls.forEach(u => URL.revokeObjectURL(u)), 60000);
+  }
+}
+
 // ── Generic dialog/confirm helpers ──
 function openDialog(innerHtml, onOk, opts = {}) {
   const overlay = document.createElement('div'); overlay.className = 'dialog-overlay';
@@ -1696,10 +2194,10 @@ function openDialog(innerHtml, onOk, opts = {}) {
   });
   if (opts.focus) { const f = root.querySelector(opts.focus); if (f) { f.focus(); if (opts.selectAll && f.select) f.select(); } }
 }
-function confirmDialog(message, onOk) {
+function confirmDialog(message, onOk, okLabel) {
   const overlay = document.createElement('div'); overlay.className = 'dialog-overlay';
   overlay.innerHTML = `<div class="dialog"><h3>${escHtml(message)}</h3>
-    <div class="dialog-actions"><button class="btn-cancel" id="cfmNo">キャンセル</button><button class="btn-ok" id="cfmYes" style="background:var(--red)">削除</button></div></div>`;
+    <div class="dialog-actions"><button class="btn-cancel" id="cfmNo">キャンセル</button><button class="btn-ok" id="cfmYes" style="background:var(--red)">${escHtml(okLabel || '削除')}</button></div></div>`;
   document.body.appendChild(overlay);
   const close = () => overlay.remove();
   overlay.querySelector('#cfmNo').onclick = close;
@@ -1715,11 +2213,12 @@ document.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); save(); return; }
   if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); if (S.panel !== 'search') togglePanel('search'); else $('#searchQ')?.focus(); return; }
+  if (mod && e.key.toLowerCase() === 'p') { e.preventDefault(); printPdf(); return; }
   if (typing) return;
   if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
   else if (mod && (e.key === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); doRedo(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel && S.sel.page === S.cur) { e.preventDefault(); deleteSelected(); }
-  else if (e.key === 'Escape') { clearTool(); }
+  else if (e.key === 'Escape') { closeDocMenu(); clearTool(); }
 });
 async function deleteSelected() {
   if (!S.sel || S.sel.page !== S.cur) return;
