@@ -717,6 +717,12 @@ const engineReady = (async () => {
     $('#fileWarning')?.classList.add('show');
   }
   worker = new Worker('./engine-worker.js', { type: 'module' });
+  // Wait for the worker's own id:0 "ready" message (see engine-worker.js) instead
+  // of firing an RPC call right after `new Worker()`: mupdf.js + its ~10MB wasm
+  // take real time to load, and a message sent that early can arrive before the
+  // worker's own onmessage is registered — some browsers drop it silently rather
+  // than queuing it, which would hang this promise forever.
+  const readyPromise = new Promise((resolve, reject) => { pending.set(0, { resolve, reject }); });
   worker.onmessage = (e) => {
     const { id, ok, result, message, needPassword } = e.data;
     const p = pending.get(id); if (!p) return;
@@ -725,14 +731,14 @@ const engineReady = (async () => {
     else { const err = new Error(message); err.needPassword = needPassword; p.reject(err); }
   };
   // A worker that fails to load (e.g. module workers unsupported under file://)
-  // never posts a message back, so the startup ping below would hang forever
-  // without this: reject every pending call so engineReady rejects too.
+  // never posts a message back, so the wait below would hang forever without
+  // this: reject every pending call so engineReady rejects too.
   worker.onerror = (e) => {
     const err = new Error(e.message || 'ワーカーの起動に失敗しました');
     for (const p of pending.values()) p.reject(err);
     pending.clear();
   };
-  await call('status');   // startup ping; throws/rejects if the worker failed to load
+  await readyPromise;
 })();
 engineReady.then(() => {
   const ov = $('#engineLoading'); if (ov) ov.classList.add('hidden');
