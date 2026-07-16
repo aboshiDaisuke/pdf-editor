@@ -271,12 +271,23 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 @media (max-width: 1440px) {
   .header { padding: 0 8px; }
   .doc-title { max-width: 160px; }
-  .edit-tools .tbtn:not(.icon-only),
   .file-actions #btnSave,
   .file-actions #btnSaveAs {
     width: 34px; padding: 0 8px; gap: 0; font-size: 0;
   }
 }
+
+/* ===== Left tool rail (Acrobat-style: edit / markup / shape / stamp) ===== */
+.tool-rail {
+  width: 48px; flex-shrink: 0; background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 0; gap: 2px; overflow-y: auto;
+}
+.tool-rail .toolbar-group { flex-direction: column; gap: 2px; }
+.tool-rail .tbtn { width: 36px; height: 36px; padding: 0; justify-content: center; font-size: 0; }
+.tool-rail .current-color-chip { margin: 4px 0 0; }
+.rail-sep { width: 28px; height: 1px; background: var(--border); margin: 6px 0; flex-shrink: 0; }
 
 /* ===== Dropdown menu (文書ツール) ===== */
 .menu-pop { position: fixed; z-index: 700; background: var(--elev); border: 1px solid var(--border); border-radius: 9px; box-shadow: var(--shadow-lg); padding: 6px; min-width: 224px; animation: modalIn .14s ease-out; }
@@ -393,44 +404,6 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   </div>
   <div class="sep"></div>
 
-  <!-- Edit tools -->
-  <div class="toolbar-group edit-tools">
-    <button class="tbtn tool" data-tool="select" onclick="setTool('select')" title="オブジェクト選択（画像・図形・追加文字を移動/リサイズ）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>オブジェクト</button>
-    <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集（ページ上の文字をダブルクリックでも可）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
-    <button class="tbtn tool" data-tool="addText" onclick="setTool('addText')" title="テキスト追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>文字</button>
-    <button class="tbtn tool" data-tool="addImage" onclick="setTool('addImage')" title="画像挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>画像</button>
-    <button class="tbtn tool icon-only" data-tool="eyedropper" onclick="setTool('eyedropper')" title="スポイト（ページ上の色を取得）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 3l2 2-8.5 8.5-3 1 1-3L19 3z"/><path d="M14 4l6 6"/><path d="M5 19c1.8-3.8 4.2-5.8 7.5-5.5"/><path d="M4 21h7"/></svg></button>
-    <span class="current-color-chip" id="currentColorChip" title="現在の色"></span>
-  </div>
-  <div class="sep"></div>
-
-  <!-- Markup tools -->
-  <div class="toolbar-group markup-tools">
-    <button class="tbtn tool icon-only" data-tool="highlight" onclick="setTool('highlight')" title="ハイライト"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-4 4v3h3l4-4"/><path d="M22 2l-7 7-4-4 7-7z" transform="translate(-2 4)"/><line x1="3" y1="22" x2="21" y2="22"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="underline" onclick="setTool('underline')" title="下線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="strikeout" onclick="setTool('strikeout')" title="取り消し線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M6 5h12M9 5v4M15 19a5 5 0 0 1-6 0"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="ink" onclick="setTool('ink')" title="フリーハンド"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="arrow" onclick="setTool('arrow')" title="矢印"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="note" onclick="setTool('note')" title="コメント（付箋）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="erase" onclick="setTool('erase')" title="注釈を消去（ハイライト/手書き/コメント等をクリックで削除）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a1 1 0 0 1 0-1.4l9.6-9.6a2 2 0 0 1 2.8 0l4.6 4.6a2 2 0 0 1 0 2.8L11 20"/><line x1="18" y1="12.5" x2="9.5" y2="4"/></svg></button>
-  </div>
-  <div class="sep"></div>
-
-  <!-- Shape tools -->
-  <div class="toolbar-group shape-tools">
-    <button class="tbtn tool icon-only" data-tool="rect" onclick="setTool('rect')" title="四角"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="ellipse" onclick="setTool('ellipse')" title="楕円"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="8"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="line" onclick="setTool('line')" title="直線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg></button>
-  </div>
-  <div class="sep"></div>
-
-  <!-- Acrobat-style tools -->
-  <div class="toolbar-group acro-tools">
-    <button class="tbtn tool icon-only" data-tool="stamp" onclick="startStamp()" title="スタンプ（承認済み・下書きなど）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M19.27 13.73A2.5 2.5 0 0 0 17.5 13H15l1-6a3.9 3.9 0 0 0-1.17-2.83A3.9 3.9 0 0 0 12 3a3.9 3.9 0 0 0-2.83 1.17A3.9 3.9 0 0 0 8 7l1 6H6.5a2.5 2.5 0 0 0-2.5 2.5V18h16v-2.5a2.5 2.5 0 0 0-.73-1.77z"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="signature" onclick="signatureDialog()" title="署名（手書き / テキスト）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 19c-2 1.5-4-1-6 0s-2.5 1.7-4 1"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-    <button class="tbtn tool icon-only" data-tool="redact" onclick="setTool('redact')" title="墨消し（範囲を黒塗りして内容を完全削除）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" fill="currentColor" stroke="none" rx="1"/><path d="M3 4h18M3 20h18"/></svg></button>
-  </div>
-
   <div class="spacer"></div>
   <span class="doc-title" id="docTitle"></span>
   <div class="sep"></div>
@@ -471,6 +444,43 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 
 <!-- Main Layout -->
 <div class="main-layout" id="mainLayout">
+  <!-- Left tool rail (Acrobat-style: edit / markup / shape / stamp tools) -->
+  <aside class="tool-rail" id="toolRail">
+    <div class="toolbar-group edit-tools">
+      <button class="tbtn tool" data-tool="select" onclick="setTool('select')" title="オブジェクト選択（画像・図形・追加文字を移動/リサイズ）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>オブジェクト</button>
+      <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集（ページ上の文字をダブルクリックでも可）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
+      <button class="tbtn tool" data-tool="addText" onclick="setTool('addText')" title="テキスト追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>文字</button>
+      <button class="tbtn tool" data-tool="addImage" onclick="setTool('addImage')" title="画像挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>画像</button>
+      <button class="tbtn tool icon-only" data-tool="eyedropper" onclick="setTool('eyedropper')" title="スポイト（ページ上の色を取得）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 3l2 2-8.5 8.5-3 1 1-3L19 3z"/><path d="M14 4l6 6"/><path d="M5 19c1.8-3.8 4.2-5.8 7.5-5.5"/><path d="M4 21h7"/></svg></button>
+      <span class="current-color-chip" id="currentColorChip" title="現在の色"></span>
+    </div>
+    <div class="rail-sep"></div>
+
+    <div class="toolbar-group markup-tools">
+      <button class="tbtn tool icon-only" data-tool="highlight" onclick="setTool('highlight')" title="ハイライト"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l-4 4v3h3l4-4"/><path d="M22 2l-7 7-4-4 7-7z" transform="translate(-2 4)"/><line x1="3" y1="22" x2="21" y2="22"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="underline" onclick="setTool('underline')" title="下線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="strikeout" onclick="setTool('strikeout')" title="取り消し線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M6 5h12M9 5v4M15 19a5 5 0 0 1-6 0"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="ink" onclick="setTool('ink')" title="フリーハンド"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="arrow" onclick="setTool('arrow')" title="矢印"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="note" onclick="setTool('note')" title="コメント（付箋）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="erase" onclick="setTool('erase')" title="注釈を消去（ハイライト/手書き/コメント等をクリックで削除）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a1 1 0 0 1 0-1.4l9.6-9.6a2 2 0 0 1 2.8 0l4.6 4.6a2 2 0 0 1 0 2.8L11 20"/><line x1="18" y1="12.5" x2="9.5" y2="4"/></svg></button>
+    </div>
+    <div class="rail-sep"></div>
+
+    <div class="toolbar-group shape-tools">
+      <button class="tbtn tool icon-only" data-tool="rect" onclick="setTool('rect')" title="四角"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="ellipse" onclick="setTool('ellipse')" title="楕円"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="8"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="line" onclick="setTool('line')" title="直線"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg></button>
+    </div>
+    <div class="rail-sep"></div>
+
+    <div class="toolbar-group acro-tools">
+      <button class="tbtn tool icon-only" data-tool="stamp" onclick="startStamp()" title="スタンプ（承認済み・下書きなど）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M19.27 13.73A2.5 2.5 0 0 0 17.5 13H15l1-6a3.9 3.9 0 0 0-1.17-2.83A3.9 3.9 0 0 0 12 3a3.9 3.9 0 0 0-2.83 1.17A3.9 3.9 0 0 0 8 7l1 6H6.5a2.5 2.5 0 0 0-2.5 2.5V18h16v-2.5a2.5 2.5 0 0 0-.73-1.77z"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="signature" onclick="signatureDialog()" title="署名（手書き / テキスト）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 19c-2 1.5-4-1-6 0s-2.5 1.7-4 1"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+      <button class="tbtn tool icon-only" data-tool="redact" onclick="setTool('redact')" title="墨消し（範囲を黒塗りして内容を完全削除）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" fill="currentColor" stroke="none" rx="1"/><path d="M3 4h18M3 20h18"/></svg></button>
+    </div>
+  </aside>
+
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-tabs">
