@@ -233,6 +233,18 @@ export function createEngine(mupdf) {
     });
   }
 
+  // Raw RGB pixels for direct canvas drawing (no PNG encode/decode round-trip).
+  function renderPixels(idx, zoom) {
+    return withPage(idx, (page) => {
+      const pix = page.toPixmap(mupdf.Matrix.scale(clampZoom(zoom), clampZoom(zoom)),
+        mupdf.ColorSpace.DeviceRGB, false, true);
+      const w = pix.getWidth(), h = pix.getHeight();
+      const pixels = pix.getPixels().slice();   // copy out of WASM memory before destroy
+      pix.destroy();
+      return { w, h, pixels };
+    });
+  }
+
   function pageSizePts(idx) {
     return withPage(idx, (page) => {
       const b = page.getBounds();
@@ -1054,7 +1066,7 @@ export function createEngine(mupdf) {
   }
 
   return {
-    open, renderPNG, pageSizePts, getText, editText, addText, addImage, drawShape,
+    open, renderPNG, renderPixels, pageSizePts, getText, editText, addText, addImage, drawShape,
     listFonts, registerFont,
     addAnnot, listAnnots, deleteAnnot, setAnnotRect, addPage, deletePage, deletePages, movePage,
     rotate, importPdf, extract, search, getWidgets, setWidget, undo, redo, save, status,
