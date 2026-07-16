@@ -164,7 +164,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .sidebar-footer button svg { width: 12px; height: 12px; }
 
 /* ===== Editor Area ===== */
-.editor-area { flex: 1; overflow: auto; background: var(--bg); display: flex; align-items: flex-start; justify-content: center; position: relative; }
+.editor-area { flex: 1; overflow: auto; background: var(--bg); display: flex; align-items: center; justify-content: flex-start; flex-direction: column; position: relative; }
 .editor-area.drag-over::after { content: ''; position: absolute; inset: 16px; border: 3px dashed var(--pri); border-radius: 8px; background: rgba(215,25,32,.04); pointer-events: none; z-index: 50; }
 
 .empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; user-select: none; }
@@ -174,7 +174,14 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .btn-open { padding: 12px 32px; background: var(--pri); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--tr); box-shadow: 0 2px 8px rgba(215,25,32,.25); }
 .btn-open:hover { background: var(--pri-h); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(215,25,32,.32); }
 
-.page-display { padding: 32px; flex-shrink: 0; }
+/* Continuous scroll: every page gets a placeholder slot sized to its page
+   bounds; only the visible ones (± margin) carry a rendered canvas, and only
+   the current (last-activated) page is fully interactive. */
+.scroll-viewport { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 24px 0; width: 100%; }
+.page-slot { position: relative; flex-shrink: 0; background: var(--surface-h); border-radius: 3px; }
+.page-slot:not(.is-current) { cursor: pointer; }
+.page-slot.is-current { outline: 2px solid var(--pri); outline-offset: 3px; border-radius: 5px; }
+.page-display { flex-shrink: 0; }
 .page-stage { position: relative; line-height: 0; }
 .page-canvas { box-shadow: var(--shadow-lg); border-radius: 3px; display: block; background: #fff; transition: box-shadow var(--tr); }
 .page-stage.tool-draw .page-canvas { cursor: crosshair; }
@@ -514,6 +521,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
       <p>ドラッグ&ドロップ または下のボタンから</p>
       <button class="btn-open" onclick="openFile()">ファイルを選択</button>
     </div>
+    <div class="scroll-viewport" id="scrollViewport"></div>
   </main>
 
   <!-- Right panel -->
@@ -891,7 +899,7 @@ function openFile() {
 }
 async function openByPath(path) {
   toast('読み込み中...', 'info');
-  try { onOpened(await api('/api/open_path', { path })); }
+  try { await onOpened(await api('/api/open_path', { path })); }
   catch (e) { toast(e.message, 'err'); }
 }
 async function loadPdf(file, password) {
@@ -899,7 +907,7 @@ async function loadPdf(file, password) {
   try {
     await needEngine();
     const bytes = new Uint8Array(await file.arrayBuffer());
-    onOpened(await api('/api/open', { bytes, filename: file.name, password }));
+    await onOpened(await api('/api/open', { bytes, filename: file.name, password }));
   } catch (e) {
     if (e.needPassword) { promptPdfPassword(file, password ? e.message : null); return; }
     toast('ファイルを開けません: ' + e.message, 'err');
@@ -917,7 +925,7 @@ function promptPdfPassword(file, errMsg) {
       return true;
     }, { okLabel: '開く', focus: '#dlgPdfPw' });
 }
-function onOpened(j) {
+async function onOpened(j) {
   S.cur = 0;
   // reset transient + selection state for the new document
   selectMode = false; selectedPages.clear();
@@ -925,11 +933,12 @@ function onOpened(j) {
   $('#btnSelectMode').classList.remove('active');
   S.search = { q: '', results: [], idx: -1 };
   clearTool();
-  textCache.clear();
+  textCache.clear(); pixelCache.clear();
   invalidateAllThumbs();
   applyStatus(j);
   $('#emptyState').style.display = 'none';
   $('#btnSave').disabled = false; $('#btnSaveAs').disabled = false;
+  await buildScrollSlots();
   renderPageList(); renderPage(); renderOutline();
   if (S.panel) refreshPanel();
   toast(`${j.filename || 'PDF'} (${j.pages}ページ)`, 'ok');
@@ -1024,7 +1033,7 @@ function renderPageList() {
         item.classList.toggle('selected', check.checked);
         return;
       }
-      S.cur = i; renderPageList(); renderPage(); if (S.panel === 'forms') refreshPanel();
+      gotoPage(i);
     };
 
     item.addEventListener('dragstart', e => { dragSrcIdx = i; item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
@@ -1071,14 +1080,17 @@ function cachePut(key, val) {
   pixelCache.set(key, val);
   if (pixelCache.size > 4) pixelCache.delete(pixelCache.keys().next().value);
 }
-function paintPixels(canvas, overlay, w, h, pixels) {
-  canvas.width = w; canvas.height = h;
+function rgbaFromPixels(w, h, pixels) {
   // Engine returns 3ch RGB; expand to 4ch RGBA for ImageData.
   const rgba = new Uint8ClampedArray(w * h * 4);
   for (let i = 0, j = 0; i < pixels.length; i += 3, j += 4) {
     rgba[j] = pixels[i]; rgba[j + 1] = pixels[i + 1]; rgba[j + 2] = pixels[i + 2]; rgba[j + 3] = 255;
   }
-  canvas.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
+  return rgba;
+}
+function paintPixels(canvas, overlay, w, h, pixels) {
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').putImageData(new ImageData(rgbaFromPixels(w, h, pixels), w, h), 0, 0);
   overlay.setAttribute('width', canvas.width);
   overlay.setAttribute('height', canvas.height);
   overlay.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
@@ -1099,9 +1111,111 @@ function prefetchNeighbors(idx, zoom) {
     }
   });
 }
+
+// ── Continuous scroll: one placeholder slot per page; only pages within the
+// IntersectionObserver margin carry a rendered canvas, and only the current
+// (last-activated) page is the fully interactive page-stage. Clicking any
+// other visible page makes it current (its overlay/tools then apply to it).
+let slotObserver = null;
+let scrollSlotsGen = 0;
+let defaultPageSizePt = { w: 595, h: 842 };
+function sizeSlot(slot) {
+  slot.style.width = Math.round(defaultPageSizePt.w * S.zoom) + 'px';
+  slot.style.height = Math.round(defaultPageSizePt.h * S.zoom) + 'px';
+}
+async function buildScrollSlots() {
+  const viewport = $('#scrollViewport');
+  const gen = ++scrollSlotsGen;
+  if (slotObserver) slotObserver.disconnect();
+  viewport.innerHTML = '';
+  if (S.pages === 0) return;
+  try { defaultPageSizePt = await call('pageSizePts', 0); } catch (e) { /* keep A4 fallback */ }
+  if (gen !== scrollSlotsGen) return;
+  for (let i = 0; i < S.pages; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'page-slot';
+    slot.dataset.page = i;
+    sizeSlot(slot);
+    slot.addEventListener('click', () => activatePage(i));
+    viewport.appendChild(slot);
+  }
+  slotObserver = new IntersectionObserver(onSlotIntersect, { root: edArea, rootMargin: '600px 0px' });
+  viewport.querySelectorAll('.page-slot').forEach(s => slotObserver.observe(s));
+}
+function onSlotIntersect(entries) {
+  for (const ent of entries) {
+    const i = Number(ent.target.dataset.page);
+    if (ent.isIntersecting) mountSlotPreview(ent.target, i);
+    else if (i !== S.cur) unmountSlot(ent.target);
+  }
+}
+function unmountSlot(slot) { slot.innerHTML = ''; }
+async function mountSlotPreview(slot, i) {
+  if (i === S.cur) { if (!slot.querySelector('.page-stage')) renderPage(); return; }
+  if (slot.children.length) return;   // already rendered
+  const gen = scrollSlotsGen, zoom = S.zoom;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'page-canvas preview-canvas';
+  canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', `ページ ${i + 1}`);
+  canvas.ondragstart = () => false;
+  slot.appendChild(canvas);
+  const key = cacheKey(i, zoom);
+  const cached = pixelCache.get(key);
+  const finish = (w, h, pixels) => {
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').putImageData(new ImageData(rgbaFromPixels(w, h, pixels), w, h), 0, 0);
+    slot.style.width = w + 'px'; slot.style.height = h + 'px';
+  };
+  if (cached) { finish(cached.w, cached.h, cached.pixels); return; }
+  try {
+    const { w, h, pixels } = await call('renderPixels', i, zoom);
+    if (gen !== scrollSlotsGen || zoom !== S.zoom || !canvas.isConnected) return;   // stale
+    finish(w, h, pixels);
+    cachePut(key, { w, h, pixels });
+  } catch (e) { /* leave the placeholder blank; scrolling away will retry */ }
+}
+function refreshVisiblePreviews() {
+  $$('.page-slot').forEach(slot => {
+    const i = Number(slot.dataset.page);
+    if (i !== S.cur && slot.children.length) { slot.innerHTML = ''; mountSlotPreview(slot, i); }
+  });
+}
+function activatePage(i) {
+  if (S.pages === 0 || i < 0 || i >= S.pages) return;
+  if (i === S.cur) return;
+  const oldSlot = $(`.page-slot[data-page="${S.cur}"]`);
+  S.cur = i;
+  S.sel = null;   // selection belongs to the page we're leaving
+  if (oldSlot) { oldSlot.classList.remove('is-current'); oldSlot.innerHTML = ''; mountSlotPreview(oldSlot, Number(oldSlot.dataset.page)); }
+  const slot = $(`.page-slot[data-page="${i}"]`);
+  if (slot) slot.classList.add('is-current');
+  renderPageList(); renderPage(); if (S.panel === 'forms') refreshPanel();
+}
+let scrollTimer = null;
+edArea.addEventListener('scroll', () => {
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(updateCurrentFromScroll, 150);
+});
+function updateCurrentFromScroll() {
+  const slots = $$('.page-slot');
+  if (!slots.length) return;
+  const areaRect = edArea.getBoundingClientRect();
+  const centerY = areaRect.top + areaRect.height / 2;
+  let best = null, bestDist = Infinity;
+  for (const s of slots) {
+    const r = s.getBoundingClientRect();
+    if (r.bottom < areaRect.top || r.top > areaRect.bottom) continue;
+    const dist = Math.abs((r.top + r.bottom) / 2 - centerY);
+    if (dist < bestDist) { bestDist = dist; best = Number(s.dataset.page); }
+  }
+  if (best !== null) activatePage(best);
+}
+
 async function renderPage() {
-  const old = edArea.querySelector('.page-display');
-  if (old) old.remove();
+  const slot = $(`.page-slot[data-page="${S.cur}"]`);
+  if (!slot) return;
+  slot.innerHTML = '';
+  slot.classList.add('is-current');
   if (S.pages === 0) return;
   const gen = ++renderGen;
   const idx = S.cur, zoom = S.zoom;
@@ -1117,13 +1231,14 @@ async function renderPage() {
   stage.addEventListener('mousedown', onStageMouseDown);
   stage.addEventListener('mousemove', onStageMouseMove);
   stage.addEventListener('dblclick', onStageDblClick);
-  wrap.appendChild(stage); edArea.appendChild(wrap);
+  wrap.appendChild(stage); slot.appendChild(wrap);
   applyToolCursor(); updatePageIndicator();
 
   const key = cacheKey(idx, zoom);
   const cached = pixelCache.get(key);
   if (cached) {
     paintPixels(canvas, overlay, cached.w, cached.h, cached.pixels);
+    slot.style.width = canvas.width + 'px'; slot.style.height = canvas.height + 'px';
     prefetchNeighbors(idx, zoom);
     return;
   }
@@ -1131,6 +1246,7 @@ async function renderPage() {
     const { w, h, pixels } = await call('renderPixels', idx, zoom);
     if (gen !== renderGen) return;   // a newer render started meanwhile; discard this stale result
     paintPixels(canvas, overlay, w, h, pixels);
+    slot.style.width = w + 'px'; slot.style.height = h + 'px';
     cachePut(key, { w, h, pixels });
     prefetchNeighbors(idx, zoom);
   } catch (e) { if (gen === renderGen) toast(e.message, 'err'); }
@@ -1151,7 +1267,12 @@ function applyZoom(newZoom) {
   }
   S.zoom = newZoom; setZoomLabel();
   clearTimeout(zoomTimer);
-  zoomTimer = setTimeout(() => { if (S.pages) renderPage(); }, 150);
+  zoomTimer = setTimeout(() => {
+    if (!S.pages) return;
+    $$('.page-slot').forEach(sizeSlot);
+    renderPage();
+    refreshVisiblePreviews();
+  }, 150);
 }
 function zoomIn() { applyZoom(Math.min(8, S.zoom + 0.5)); }
 function zoomOut() { applyZoom(Math.max(0.5, S.zoom - 0.5)); }
@@ -1166,12 +1287,14 @@ async function doRedo() {
   catch (e) { toast(e.message, 'err'); }
 }
 // structural change: indices/counts may shift -> refresh everything
-function afterStructural(j) {
+async function afterStructural(j) {
   applyStatus(j);
   S.sel = null;                       // indices shifted — drop any selection
   S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
   textCache.clear(); pixelCache.clear();
-  invalidateAllThumbs(); renderPageList(); renderPage(); renderOutline();
+  invalidateAllThumbs(); renderPageList();
+  await buildScrollSlots();
+  renderPage(); renderOutline();
   if (S.panel) refreshPanel();
 }
 // content edit on the current page only: refresh just this page + its thumbnail
@@ -1246,9 +1369,9 @@ async function eraseAt(p) {
 function gotoPage(i) {
   if (S.pages === 0) return;
   i = Math.max(0, Math.min(i, S.pages - 1));
-  if (i === S.cur) return;
-  S.sel = null;                       // selection belongs to the page we're leaving
-  S.cur = i; renderPageList(); renderPage(); if (S.panel === 'forms') refreshPanel();
+  activatePage(i);
+  const slot = $(`.page-slot[data-page="${i}"]`);
+  if (slot) slot.scrollIntoView({ block: 'start' });
 }
 function prevPage() { gotoPage(S.cur - 1); }
 function nextPage() { gotoPage(S.cur + 1); }
@@ -1261,8 +1384,7 @@ function fitWidth() {
   if (!canvas || !canvas.width) { toast('PDFを先に開いてください', 'info'); return; }
   const area = (edArea.clientWidth || 900) - 56;       // minus padding
   const ptW = canvas.width / S.zoom;                   // page width in display points
-  S.zoom = Math.max(0.5, Math.min(8, area / ptW));
-  setZoomLabel(); renderPage();
+  applyZoom(Math.max(0.5, Math.min(8, area / ptW)));
 }
 function showTextListModal(spans) {
   const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
@@ -1861,8 +1983,11 @@ function renderSearchResults() {
 }
 function gotoSearchHit(i) {
   const r = S.search.results[i]; if (!r) return;
-  if (r.page !== S.cur) { S.sel = null; S.cur = r.page; renderPageList(); renderPage(); }
-  else drawSearchHits();
+  if (r.page !== S.cur) {
+    activatePage(r.page);
+    const slot = $(`.page-slot[data-page="${r.page}"]`);
+    if (slot) slot.scrollIntoView({ block: 'start' });
+  } else drawSearchHits();
 }
 function drawSearchHits() {
   const o = $('#overlay'); if (!o) return;
