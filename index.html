@@ -66,6 +66,9 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 }
 .header::-webkit-scrollbar { height: 4px; }
 .header::-webkit-scrollbar-thumb { background: var(--border-s); border-radius: 2px; border: 0; }
+.progress-bar { height: 3px; background: transparent; display: none; }
+.progress-bar.show { display: block; }
+.progress-bar-fill { height: 100%; width: 0%; background: var(--pri); transition: width 0.15s linear; }
 .logo {
   display: flex; align-items: center; gap: 7px;
   font-size: 14px; font-weight: 700; letter-spacing: -0.3px;
@@ -447,6 +450,8 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   </div>
 </header>
 
+<div class="progress-bar" id="progressBar"><div class="progress-bar-fill" id="progressBarFill"></div></div>
+
 <div class="file-warning" id="fileWarning">
   <div class="file-warning-box">
     <h2>HTTP経由で開いてください</h2>
@@ -620,7 +625,7 @@ async function addFontFilesToPicker(files, targetId) {
     if (!/\.(ttf|otf|ttc|otc)$/i.test(file.name || '')) continue;
     const id = `file:${encodeURIComponent(file.name)}:${file.size}:${file.lastModified}`;
     const label = (file.name || 'Custom Font').replace(/\.(ttf|otf|ttc|otc)$/i, '');
-    engine.registerFont(id, label, new Uint8Array(await file.arrayBuffer()));
+    await call('registerFont', id, label, new Uint8Array(await file.arrayBuffer()));
     registeredLocalFonts.add(id);
     addTextFontOption(id, label);
     lastId = id;
@@ -660,7 +665,7 @@ async function prepareTextFont(fontId) {
     const rec = localFontRecords.get(fontId);
     if (!rec) return 'jp';
     const blob = await rec.blob();
-    engine.registerFont(fontId, rec.fullName || rec.family || fontId, new Uint8Array(await blob.arrayBuffer()));
+    await call('registerFont', fontId, rec.fullName || rec.family || fontId, new Uint8Array(await blob.arrayBuffer()));
     registeredLocalFonts.add(fontId);
   }
   return fontId || 'jp';
@@ -673,17 +678,43 @@ function toggleTheme() {
   try { localStorage.setItem('pdfEditorTheme', next); } catch (e) {}
 }
 
-// ── mupdf.js engine (runs entirely in the browser; replaces the Flask backend) ──
-let engine = null;
+// ── mupdf.js engine (runs in a Web Worker so heavy ops don't freeze the UI) ──
+let worker = null;
 const thumbUrls = {};   // page idx -> object URL (revoked on invalidate)
+
+let rpcId = 0;
+const pending = new Map();
+function call(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    const id = ++rpcId;
+    pending.set(id, { resolve, reject });
+    const transfers = [];
+    for (const a of args) if (a instanceof Uint8Array) transfers.push(a.buffer);
+    worker.postMessage({ id, fn, args }, transfers);
+  });
+}
 
 const engineReady = (async () => {
   if (location.protocol === 'file:') {
     $('#fileWarning')?.classList.add('show');
   }
-  const mupdf = await import('./mupdf.js');
-  const { createEngine } = await import('./pdf-engine.js');
-  engine = createEngine(mupdf);
+  worker = new Worker('./engine-worker.js', { type: 'module' });
+  worker.onmessage = (e) => {
+    const { id, ok, result, message, needPassword } = e.data;
+    const p = pending.get(id); if (!p) return;
+    pending.delete(id);
+    if (ok) p.resolve(result);
+    else { const err = new Error(message); err.needPassword = needPassword; p.reject(err); }
+  };
+  // A worker that fails to load (e.g. module workers unsupported under file://)
+  // never posts a message back, so the startup ping below would hang forever
+  // without this: reject every pending call so engineReady rejects too.
+  worker.onerror = (e) => {
+    const err = new Error(e.message || 'ワーカーの起動に失敗しました');
+    for (const p of pending.values()) p.reject(err);
+    pending.clear();
+  };
+  await call('status');   // startup ping; throws/rejects if the worker failed to load
 })();
 engineReady.then(() => {
   const ov = $('#engineLoading'); if (ov) ov.classList.add('hidden');
@@ -693,8 +724,8 @@ engineReady.then(() => {
   if (ov) ov.querySelector('.el-msg').innerHTML = 'PDFエンジンの読み込みに失敗しました<br><small>HTTP 経由で開いてください（file:// 不可）</small>';
 });
 async function needEngine() {
-  if (!engine) await engineReady;
-  if (!engine) throw new Error('PDFエンジンが利用できません');
+  if (!worker) await engineReady;
+  if (!worker) throw new Error('PDFエンジンが利用できません');
 }
 
 function downloadBytes(bytes, name, mime) {
@@ -710,8 +741,8 @@ function downloadBytes(bytes, name, mime) {
   window.addEventListener('focus', onFocus);
   setTimeout(cleanup, 60000);
 }
-function pngBlobUrl(idx, zoom) {
-  return URL.createObjectURL(new Blob([engine.renderPNG(idx, zoom)], { type: 'image/png' }));
+async function pngBlobUrl(idx, zoom) {
+  return URL.createObjectURL(new Blob([await call('renderPNG', idx, zoom)], { type: 'image/png' }));
 }
 function pickFile(accept) {
   return new Promise(resolve => {
@@ -744,7 +775,7 @@ function compressImage(file, maxW) {
 // ── Central API helper: routes server-style paths to the local engine ──
 async function api(path, body) {
   await engineReady;
-  if (!engine) throw new Error('PDFエンジンが初期化されていません');
+  if (!worker) throw new Error('PDFエンジンが初期化されていません');
   const qi = path.indexOf('?');
   const qs = new URLSearchParams(qi >= 0 ? path.slice(qi + 1) : '');
   const p = qi >= 0 ? path.slice(0, qi) : path;
@@ -754,35 +785,35 @@ async function api(path, body) {
     const fonts = await ensureFontsLoaded();
     return { ok: true, fonts: fonts.map(([id, label]) => ({ id, label })) };
   }
-  if (p === '/api/open') return engine.open(b.bytes, b.filename, b.password);
-  if (p === '/api/outline') return engine.getOutline();
-  if (p === '/api/stamp') return engine.addStamp(b.page, b.x, b.y, b.text, b.size, b.color);
-  if (p === '/api/watermark') return engine.addWatermark(b);
-  if (p === '/api/page_numbers') return engine.addPageNumbers(b);
-  if (p === '/api/redact') return engine.redactArea(b.page, b.rect);
-  if (p === '/api/metadata') return engine.getMetadata();
-  if (p === '/api/set_metadata') return engine.setMetadata(b);
-  if (p.startsWith('/api/text/')) return engine.getText(idx);
-  if (p === '/api/edit_text') return engine.editText(b.page, b.bbox, b.origin, b.new_text, b.font_size, b.color, b.font);
-  if (p === '/api/add_text') return engine.addText(b.page, b.x, b.y, b.text, b.size, b.color, b.bg, b.font);
-  if (p === '/api/add_image') return engine.addImage(b.page, b.x, b.y, b.w, b.image);
-  if (p === '/api/draw_shape') return engine.drawShape(b.page, b.type, b.x0, b.y0, b.x1, b.y1, b.color, b.width, b.fill);
-  if (p === '/api/annot') return engine.addAnnot(b.page, b);
-  if (p.startsWith('/api/annots/')) return engine.listAnnots(idx);
-  if (p === '/api/delete_annot') return engine.deleteAnnot(b.page, b.xref);
-  if (p === '/api/annot_rect') return engine.setAnnotRect(b.page, b.xref, b.rect);
-  if (p === '/api/add_page') return engine.addPage();
-  if (p === '/api/delete_page') return engine.deletePage(b.page);
-  if (p === '/api/delete_pages') return engine.deletePages(b.pages);
-  if (p === '/api/move_page') return engine.movePage(b.from, b.to);
-  if (p === '/api/rotate') return engine.rotate(Array.isArray(b.pages) ? b.pages : [S.cur], b.dir);
-  if (p === '/api/import_pdf') return engine.importPdf(b.bytes, b.at);
-  if (p === '/api/extract') return engine.extract(b.pages);
-  if (p === '/api/search') return engine.search(qs.get('q') || '');
-  if (p.startsWith('/api/widgets/')) return engine.getWidgets(idx);
-  if (p === '/api/set_widget') return engine.setWidget(b.page, b.name, b.value);
-  if (p === '/api/undo') return engine.undo();
-  if (p === '/api/redo') return engine.redo();
+  if (p === '/api/open') return call('open', b.bytes, b.filename, b.password);
+  if (p === '/api/outline') return call('getOutline');
+  if (p === '/api/stamp') return call('addStamp', b.page, b.x, b.y, b.text, b.size, b.color);
+  if (p === '/api/watermark') return call('addWatermark', b);
+  if (p === '/api/page_numbers') return call('addPageNumbers', b);
+  if (p === '/api/redact') return call('redactArea', b.page, b.rect);
+  if (p === '/api/metadata') return call('getMetadata');
+  if (p === '/api/set_metadata') return call('setMetadata', b);
+  if (p.startsWith('/api/text/')) return call('getText', idx);
+  if (p === '/api/edit_text') return call('editText', b.page, b.bbox, b.origin, b.new_text, b.font_size, b.color, b.font);
+  if (p === '/api/add_text') return call('addText', b.page, b.x, b.y, b.text, b.size, b.color, b.bg, b.font);
+  if (p === '/api/add_image') return call('addImage', b.page, b.x, b.y, b.w, b.image);
+  if (p === '/api/draw_shape') return call('drawShape', b.page, b.type, b.x0, b.y0, b.x1, b.y1, b.color, b.width, b.fill);
+  if (p === '/api/annot') return call('addAnnot', b.page, b);
+  if (p.startsWith('/api/annots/')) return call('listAnnots', idx);
+  if (p === '/api/delete_annot') return call('deleteAnnot', b.page, b.xref);
+  if (p === '/api/annot_rect') return call('setAnnotRect', b.page, b.xref, b.rect);
+  if (p === '/api/add_page') return call('addPage');
+  if (p === '/api/delete_page') return call('deletePage', b.page);
+  if (p === '/api/delete_pages') return call('deletePages', b.pages);
+  if (p === '/api/move_page') return call('movePage', b.from, b.to);
+  if (p === '/api/rotate') return call('rotate', Array.isArray(b.pages) ? b.pages : [S.cur], b.dir);
+  if (p === '/api/import_pdf') return call('importPdf', b.bytes, b.at);
+  if (p === '/api/extract') return call('extract', b.pages);
+  if (p === '/api/search') return call('search', qs.get('q') || '');
+  if (p.startsWith('/api/widgets/')) return call('getWidgets', idx);
+  if (p === '/api/set_widget') return call('setWidget', b.page, b.name, b.value);
+  if (p === '/api/undo') return call('undo');
+  if (p === '/api/redo') return call('redo');
   throw new Error('未対応の操作: ' + p);
 }
 
@@ -821,9 +852,9 @@ function invalidateAllThumbs() {
 function invalidateThumb(i) {
   if (thumbUrls[i]) { URL.revokeObjectURL(thumbUrls[i]); delete thumbUrls[i]; }
 }
-function renderThumbNow(img, i) {
+async function renderThumbNow(img, i) {
   try {
-    if (!thumbUrls[i]) thumbUrls[i] = pngBlobUrl(i, 0.4);
+    if (!thumbUrls[i]) thumbUrls[i] = await pngBlobUrl(i, 0.4);
     img.src = thumbUrls[i];
   } catch (e) { /* index transiently out of range during structural edits */ }
 }
@@ -1021,19 +1052,31 @@ function renderPageList() {
 function clearAllDragStyles() { $$('.page-item').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom')); }
 
 // ── Page render with overlay ──
-function renderPage() {
+let renderGen = 0;
+async function renderPage() {
   const old = edArea.querySelector('.page-display');
   if (old) old.remove();
   if (S.pages === 0) return;
+  const gen = ++renderGen;
+  const idx = S.cur, zoom = S.zoom;
 
   const wrap = document.createElement('div'); wrap.className = 'page-display';
   const stage = document.createElement('div'); stage.className = 'page-stage'; stage.id = 'stage';
   const canvas = document.createElement('canvas'); canvas.className = 'page-canvas'; canvas.id = 'pageImg';
-  canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', `ページ ${S.cur + 1}`);
+  canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', `ページ ${idx + 1}`);
   canvas.style.width = ''; canvas.style.height = '';   // clear any zoom-preview CSS scale
   canvas.ondragstart = () => false;
+  const overlay = document.createElementNS(SVGNS, 'svg'); overlay.setAttribute('class', 'overlay'); overlay.id = 'overlay';
+  stage.appendChild(canvas); stage.appendChild(overlay);
+  stage.addEventListener('mousedown', onStageMouseDown);
+  stage.addEventListener('mousemove', onStageMouseMove);
+  stage.addEventListener('dblclick', onStageDblClick);
+  wrap.appendChild(stage); edArea.appendChild(wrap);
+  applyToolCursor(); updatePageIndicator();
+
   try {
-    const { w, h, pixels } = engine.renderPixels(S.cur, S.zoom);
+    const { w, h, pixels } = await call('renderPixels', idx, zoom);
+    if (gen !== renderGen) return;   // a newer render started meanwhile; discard this stale result
     canvas.width = w; canvas.height = h;
     // Engine returns 3ch RGB; expand to 4ch RGBA for ImageData.
     const rgba = new Uint8ClampedArray(w * h * 4);
@@ -1041,23 +1084,12 @@ function renderPage() {
       rgba[j] = pixels[i]; rgba[j + 1] = pixels[i + 1]; rgba[j + 2] = pixels[i + 2]; rgba[j + 3] = 255;
     }
     canvas.getContext('2d').putImageData(new ImageData(rgba, w, h), 0, 0);
-  } catch (e) { toast(e.message, 'err'); }
-  const overlay = document.createElementNS(SVGNS, 'svg'); overlay.setAttribute('class', 'overlay'); overlay.id = 'overlay';
-  const sizeOverlay = () => {
-    if (!canvas.width) return;
     overlay.setAttribute('width', canvas.width);
     overlay.setAttribute('height', canvas.height);
     overlay.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
     drawSearchHits();
     drawSelection();
-  };
-  sizeOverlay();
-  stage.appendChild(canvas); stage.appendChild(overlay);
-  stage.addEventListener('mousedown', onStageMouseDown);
-  stage.addEventListener('mousemove', onStageMouseMove);
-  stage.addEventListener('dblclick', onStageDblClick);
-  wrap.appendChild(stage); edArea.appendChild(wrap);
-  applyToolCursor(); updatePageIndicator();
+  } catch (e) { if (gen === renderGen) toast(e.message, 'err'); }
 }
 
 // ── Zoom ──
@@ -1704,8 +1736,8 @@ function defaultName() { const n = S.filename || 'edited.pdf'; return n.toLowerC
 async function save() {
   if (S.pages === 0) return;
   try {
-    const bytes = engine.save();
-    applyStatus(engine.status());
+    const bytes = await call('save');
+    applyStatus(await call('status'));
     downloadBytes(bytes, defaultName());
     toast('保存しました（ダウンロード）', 'ok');
   } catch (e) { toast('保存に失敗: ' + e.message, 'err'); }
@@ -1719,13 +1751,13 @@ function showSaveNameDialog() {
   openDialog(`<h3>名前を付けて保存</h3>
     <input type="text" id="dlgSaveName" value="${escAttr(base)}" placeholder="ファイル名">
     <div style="font-size:11px;color:var(--txt3);margin-top:-4px;margin-bottom:12px">.pdf は自動で付きます</div>`,
-    (root) => {
+    async (root) => {
       let name = root.querySelector('#dlgSaveName').value.trim();
       if (!name) { toast('ファイル名を入力してください', 'err'); return false; }
       if (!name.toLowerCase().endsWith('.pdf')) name += '.pdf';
       try {
-        const bytes = engine.save();
-        applyStatus(engine.status());
+        const bytes = await call('save');
+        applyStatus(await call('status'));
         downloadBytes(bytes, name);
         toast('保存しました', 'ok');
       } catch (e) { toast('保存に失敗: ' + e.message, 'err'); }
@@ -2039,6 +2071,7 @@ function watermarkDialog() {
     async (root) => {
       const text = root.querySelector('#wmText').value.trim();
       if (!text) { toast('テキストを入力してください', 'err'); return false; }
+      showProgress();
       try {
         const j = await api('/api/watermark', {
           text,
@@ -2051,6 +2084,7 @@ function watermarkDialog() {
         afterStructural(j);
         toast(`${j.applied}ページに透かしを追加しました`, 'ok');
       } catch (e) { toast('透かしに失敗: ' + e.message, 'err'); }
+      finally { hideProgress(); }
       return true;
     }, { okLabel: '追加', focus: '#wmText', selectAll: true });
   const op = document.getElementById('wmOpacity');
@@ -2077,6 +2111,7 @@ function pageNumbersDialog() {
     </div>
     <div class="dlg-info">全ページの内容として書き込まれます。⌘Zで取り消せます。</div>`,
     async (root) => {
+      showProgress();
       try {
         const j = await api('/api/page_numbers', {
           format: root.querySelector('#pnFormat').value,
@@ -2088,6 +2123,7 @@ function pageNumbersDialog() {
         afterStructural(j);
         toast('ページ番号を追加しました', 'ok');
       } catch (e) { toast('ページ番号に失敗: ' + e.message, 'err'); }
+      finally { hideProgress(); }
       return true;
     }, { okLabel: '追加' });
 }
@@ -2132,13 +2168,13 @@ function passwordSaveDialog() {
       <label>権限パスワード</label><input type="text" id="pwOwner" placeholder="編集・印刷制限の解除用（省略可）" autocomplete="off">
     </div>
     <div class="dlg-info">AES-256で暗号化して保存（ダウンロード）します。「,」と「=」は使えません。パスワードを忘れると開けなくなるためご注意ください。</div>`,
-    (root) => {
+    async (root) => {
       const userPw = root.querySelector('#pwUser').value;
       const ownerPw = root.querySelector('#pwOwner').value;
       if (!userPw && !ownerPw) { toast('パスワードを入力してください', 'err'); return false; }
       try {
-        const bytes = engine.save({ userPw, ownerPw });
-        applyStatus(engine.status());
+        const bytes = await call('save', { userPw, ownerPw });
+        applyStatus(await call('status'));
         downloadBytes(bytes, defaultName().replace(/\.pdf$/i, '') + '-protected.pdf');
         toast('パスワード付きPDFを保存しました', 'ok');
       } catch (e) { toast('保存に失敗: ' + e.message, 'err'); return false; }
@@ -2146,26 +2182,37 @@ function passwordSaveDialog() {
     }, { okLabel: '保存', focus: '#pwUser' });
 }
 
-function optimizeSave() {
+async function optimizeSave() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
   try {
-    const before = engine.save().length;          // current compressed size
-    const bytes = engine.save({ optimize: true });
-    applyStatus(engine.status());
+    const bytes = await call('save', { optimize: true });
+    applyStatus(await call('status'));
     downloadBytes(bytes, defaultName());
-    const kb = n => (n / 1024).toFixed(0) + 'KB';
-    toast(`最適化して保存しました（${kb(before)} → ${kb(bytes.length)}）`, 'ok');
+    toast(`最適化して保存しました（${(bytes.length / 1024).toFixed(0)}KB）`, 'ok');
   } catch (e) { toast('最適化に失敗: ' + e.message, 'err'); }
 }
 
-function exportPagePng() {
+async function exportPagePng() {
   if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
   try {
-    const png = engine.renderPNG(S.cur, 3);       // 3x ≒ 216dpi
+    const png = await call('renderPNG', S.cur, 3);   // 3x ≒ 216dpi
     const base = defaultName().replace(/\.pdf$/i, '');
     downloadBytes(png, `${base}-p${S.cur + 1}.png`, 'image/png');
     toast(`ページ ${S.cur + 1} をPNGで書き出しました`, 'ok');
   } catch (e) { toast('書き出しに失敗: ' + e.message, 'err'); }
+}
+
+// ── Progress bar (heavy multi-page ops: print, watermark, page numbers) ──
+function showProgress() {
+  const bar = $('#progressBar'); if (!bar) return;
+  bar.classList.add('show');
+  setProgress(0);
+}
+function setProgress(frac) {
+  const fill = $('#progressBarFill'); if (fill) fill.style.width = Math.round(frac * 100) + '%';
+}
+function hideProgress() {
+  const bar = $('#progressBar'); if (bar) bar.classList.remove('show');
 }
 
 async function printPdf() {
@@ -2177,15 +2224,17 @@ async function printPdf() {
     '</title><style>@page{margin:0}body{margin:0}img{display:block;width:100%;page-break-after:always}</style></head><body></body></html>');
   win.document.close();
   const urls = [];
+  showProgress();
   try {
     const imgs = [];
     for (let i = 0; i < S.pages; i++) {
-      const url = URL.createObjectURL(new Blob([engine.renderPNG(i, 2)], { type: 'image/png' }));
+      const url = URL.createObjectURL(new Blob([await call('renderPNG', i, 2)], { type: 'image/png' }));
       urls.push(url);
       const img = win.document.createElement('img');
       img.src = url;
       win.document.body.appendChild(img);
       imgs.push(img);
+      setProgress((i + 1) / S.pages);
     }
     await Promise.all(imgs.map(im => im.decode().catch(() => {})));
     win.focus();
@@ -2193,6 +2242,7 @@ async function printPdf() {
   } catch (e) {
     toast('印刷準備に失敗: ' + e.message, 'err');
   } finally {
+    hideProgress();
     setTimeout(() => urls.forEach(u => URL.revokeObjectURL(u)), 60000);
   }
 }
