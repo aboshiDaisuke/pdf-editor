@@ -718,7 +718,10 @@ const engineReady = (async () => {
   if (location.protocol === 'file:') {
     $('#fileWarning')?.classList.add('show');
   }
-  worker = new Worker('./engine-worker.js', { type: 'module' });
+  // ?v= is a cache-buster — bump it (and the matching one in engine-worker.js's
+  // import of pdf-engine.js) on every deploy so a fresh index.html never pairs
+  // with a stale, cached worker/engine. See engine-worker.js for the full note.
+  worker = new Worker('./engine-worker.js?v=2', { type: 'module' });
   // Wait for the worker's own id:0 "ready" message (see engine-worker.js) instead
   // of firing an RPC call right after `new Worker()`: mupdf.js + its ~10MB wasm
   // take real time to load, and a message sent that early can arrive before the

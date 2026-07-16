@@ -1,6 +1,10 @@
 // Module worker: hosts mupdf WASM + the engine so heavy ops don't block the UI.
+// NOTE: the ?v= query is a cache-buster. Bump it (and the matching one in
+// index.html's `new Worker(...)`) on every deploy so browsers can't pair a new
+// index.html with a stale, cached pdf-engine.js (which throws e.g. "unknown
+// engine function: renderPixels" when the two versions disagree).
 import * as mupdf from "./mupdf.js";
-import { createEngine } from "./pdf-engine.js";
+import { createEngine } from "./pdf-engine.js?v=2";
 
 const engine = createEngine(mupdf);
 
