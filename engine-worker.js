@@ -22,3 +22,10 @@ function collectTransfers(v, out) {
   if (v instanceof Uint8Array) { out.push(v.buffer); return; }
   if (typeof v === 'object') for (const k in v) collectTransfers(v[k], out);
 }
+// Signal readiness explicitly. Loading mupdf.js + compiling the ~10MB wasm
+// takes real time, and a postMessage the main thread fires immediately after
+// `new Worker()` can arrive before this module has finished evaluating (and
+// self.onmessage above is registered) — some browsers silently drop such
+// early messages instead of queuing them. So the main thread waits for this
+// id:0 message instead of racing an RPC call right after worker creation.
+self.postMessage({ id: 0, ok: true });
