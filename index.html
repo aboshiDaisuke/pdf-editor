@@ -183,7 +183,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .page-slot.is-current { outline: 2px solid var(--pri); outline-offset: 3px; border-radius: 5px; }
 .page-display { flex-shrink: 0; }
 .page-stage { position: relative; line-height: 0; }
-.page-canvas { box-shadow: var(--shadow-lg); border-radius: 3px; display: block; background: #fff; transition: box-shadow var(--tr); }
+.page-canvas { box-shadow: var(--shadow-lg); border-radius: 3px; display: block; background: #fff; transition: box-shadow var(--tr); cursor: text; }
 .page-stage.tool-draw .page-canvas { cursor: crosshair; }
 .page-stage.tool-text .page-canvas { cursor: text; }
 .page-stage.tool-eyedropper .page-canvas { cursor: crosshair; }
@@ -191,6 +191,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .overlay .search-hit { fill: rgba(245,158,11,.35); stroke: var(--amber); stroke-width: 1; }
 .overlay .search-hit.current { fill: rgba(215,25,32,.22); stroke: var(--pri); stroke-width: 1.5; }
 .overlay .sel-box { fill: rgba(215,25,32,.10); stroke: var(--pri); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.overlay .text-sel { fill: var(--pri-l); }
 .overlay .sel-handle { fill: #fff; stroke: var(--pri); stroke-width: 1.5; }
 .overlay .prev.img-box { fill: rgba(215,25,32,.12); stroke: var(--pri); stroke-width: 1.5; stroke-dasharray: 6 4; }
 .page-stage.tool-select .page-canvas { cursor: default; }
@@ -553,6 +554,7 @@ const S = {
   customToolColor: false,
   draw: null,                 // transient drag/ink state
   sel: null,                  // selected annotation: { page, xref, kind, rect:[x0,y0,x1,y1] }
+  textSel: null,              // text selection: { page, p, q, dragging, rects, text }
   panel: null,                // 'search' | 'forms' | null
   search: { q: '', results: [], idx: -1 },
 };
@@ -1102,6 +1104,7 @@ function paintPixels(canvas, overlay, w, h, pixels) {
   overlay.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
   drawSearchHits();
   drawSelection();
+  drawTextSelection(S.textSel && S.textSel.page === S.cur ? S.textSel.rects : null);
 }
 const idleSchedule = window.requestIdleCallback || (fn => setTimeout(fn, 300));
 function prefetchNeighbors(idx, zoom) {
@@ -1192,6 +1195,7 @@ function activatePage(i) {
   const oldSlot = $(`.page-slot[data-page="${S.cur}"]`);
   S.cur = i;
   S.sel = null;   // selection belongs to the page we're leaving
+  S.textSel = null;
   if (oldSlot) { oldSlot.classList.remove('is-current'); oldSlot.innerHTML = ''; mountSlotPreview(oldSlot, Number(oldSlot.dataset.page)); }
   const slot = $(`.page-slot[data-page="${i}"]`);
   if (slot) slot.classList.add('is-current');
@@ -1296,6 +1300,7 @@ async function doRedo() {
 async function afterStructural(j) {
   applyStatus(j);
   S.sel = null;                       // indices shifted — drop any selection
+  S.textSel = null;
   S.cur = Math.max(0, Math.min(S.cur, S.pages - 1));
   textCache.clear(); pixelCache.clear();
   invalidateAllThumbs(); renderPageList();
@@ -1307,6 +1312,7 @@ async function afterStructural(j) {
 function afterContentEdit(j) {
   applyStatus(j); invalidateThumb(S.cur);
   textCache.delete(S.cur); pixelCache.clear();
+  S.textSel = null;
   idleSchedule(() => updateThumb(S.cur));
   renderPage();
 }
@@ -1443,6 +1449,7 @@ function setTool(tool) {
   if (S.mode === tool) { clearTool(); return; }
   S.mode = tool;
   if (tool !== 'select') clearSelection();
+  clearTextSelection();
   $$('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   if (tool === 'addImage') { $('#imgInput').click(); }
 
@@ -1579,7 +1586,7 @@ function stageCoord(e) {
   return { x: (e.clientX - r.left) / S.zoom, y: (e.clientY - r.top) / S.zoom };
 }
 async function onStageMouseDown(e) {
-  if (!S.mode) return;
+  if (!S.mode) { onTextSelectDown(stageCoord(e)); return; }
   const p = stageCoord(e);
   if (S.mode === 'select') { await onSelectDown(p); return; }
   if (S.mode === 'erase') { await eraseAt(p); return; }
@@ -1596,7 +1603,8 @@ async function onStageMouseDown(e) {
   if (DRAG_TOOLS.includes(S.mode)) { S.draw = { start: p, cur: p, page: S.cur }; }
 }
 function onStageMouseMove(e) {
-  if (!S.draw || !S.mode) return;
+  if (!S.mode) { onTextSelectMove(stageCoord(e)); return; }
+  if (!S.draw) return;
   const p = stageCoord(e);
   if (S.mode === 'select') { onSelectMove(p); return; }
   if (S.mode === 'addImage') { S.draw.cur = p; drawImageBoxPreview(); return; }
@@ -1605,7 +1613,8 @@ function onStageMouseMove(e) {
 }
 async function onStageMouseUp(e) {
   if (S.mode === 'select') { await onSelectUp(e); return; }
-  if (!S.draw || !S.mode) return;
+  if (!S.mode) { onTextSelectUp(); return; }
+  if (!S.draw) return;
   if (S.mode === 'addImage') { await onImageUp(e); return; }
   const draw = S.draw; S.draw = null; clearPreview();
   // The drag started on draw.page; if the page changed mid-drag (nav, search
@@ -1643,6 +1652,62 @@ async function onStageMouseUp(e) {
     }
     afterContentEdit(j); toast('追加しました', 'ok');
   } catch (err) { toast('失敗しました: ' + err.message, 'err'); }
+}
+
+// ── Text selection (Acrobat-style default action when no tool is active) ──
+let selBusy = false, selDirty = false;
+function onTextSelectDown(p) {
+  clearTextSelection();
+  S.textSel = { page: S.cur, p: [p.x, p.y], q: [p.x, p.y], dragging: true, rects: [], text: '' };
+}
+function onTextSelectMove(p) {
+  const sel = S.textSel;
+  if (!sel || !sel.dragging) return;
+  sel.q = [p.x, p.y];
+  updateTextSelection();
+}
+function onTextSelectUp() {
+  const sel = S.textSel;
+  if (!sel || !sel.dragging) return;
+  sel.dragging = false;
+  updateTextSelection();
+}
+async function updateTextSelection() {
+  const sel = S.textSel; if (!sel) return;
+  if (selBusy) { selDirty = true; return; }
+  selBusy = true; selDirty = false;
+  try {
+    const { rects, text } = await call('selectionInfo', sel.page, sel.p, sel.q);
+    if (S.textSel !== sel) return;   // selection was replaced/cleared meanwhile
+    sel.rects = rects; sel.text = text;
+    if (sel.page === S.cur) drawTextSelection(rects);
+  } catch (e) { /* ignore transient errors mid-drag */ }
+  selBusy = false;
+  if (selDirty && S.textSel === sel) updateTextSelection();
+}
+function clearTextSelection() {
+  if (!S.textSel) return;
+  S.textSel = null;
+  drawTextSelection(null);
+}
+function drawTextSelection(rects) {
+  const o = $('#overlay'); if (!o) return;
+  o.querySelectorAll('.text-sel').forEach(el => el.remove());
+  if (!rects || !rects.length) return;
+  const z = S.zoom;
+  for (const r of rects) {
+    const rc = document.createElementNS(SVGNS, 'rect');
+    rc.setAttribute('class', 'text-sel');
+    rc.setAttribute('x', r[0] * z); rc.setAttribute('y', r[1] * z);
+    rc.setAttribute('width', (r[2] - r[0]) * z); rc.setAttribute('height', (r[3] - r[1]) * z);
+    o.appendChild(rc);
+  }
+}
+async function copyTextSelection() {
+  const sel = S.textSel;
+  if (!sel || !sel.text) return;
+  try { await navigator.clipboard.writeText(sel.text); toast('コピーしました', 'ok'); }
+  catch (e) { toast('コピーできません: ' + e.message, 'err'); }
 }
 
 // ── Preview overlay ──
@@ -2469,7 +2534,8 @@ document.addEventListener('keydown', e => {
   if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
   else if (mod && (e.key === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); doRedo(); }
   else if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel && S.sel.page === S.cur) { e.preventDefault(); deleteSelected(); }
-  else if (e.key === 'Escape') { closeDocMenu(); clearTool(); }
+  else if (mod && e.key.toLowerCase() === 'c' && S.textSel && S.textSel.text) { e.preventDefault(); copyTextSelection(); }
+  else if (e.key === 'Escape') { closeDocMenu(); clearTool(); clearTextSelection(); }
 });
 async function deleteSelected() {
   if (!S.sel || S.sel.page !== S.cur) return;

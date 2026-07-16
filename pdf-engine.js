@@ -292,6 +292,21 @@ export function createEngine(mupdf) {
     return quads;
   }
 
+  // ── text selection (drag-select, display-space points → highlight quads + copied text) ──
+  function selectionInfo(idx, p, q) {
+    return withPage(idx, (page) => {
+      const st = page.toStructuredText("preserve-whitespace");
+      try {
+        const rects = st.highlight(p, q).map((quad) => {
+          const xs = [quad[0], quad[2], quad[4], quad[6]], ys = [quad[1], quad[3], quad[5], quad[7]];
+          return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+        });
+        const text = rects.length ? st.copy(p, q) : "";
+        return { rects, text };
+      } finally { st.destroy(); }
+    });
+  }
+
   // ── Real text insertion / movable text appearance ───────────────────────
   // Existing-text edits redraw into the page stream at the original baseline.
   // Newly added text is a FreeText annotation with a custom appearance so it can
@@ -1067,6 +1082,7 @@ export function createEngine(mupdf) {
 
   return {
     open, renderPNG, renderPixels, pageSizePts, getText, editText, addText, addImage, drawShape,
+    selectionInfo,
     listFonts, registerFont,
     addAnnot, listAnnots, deleteAnnot, setAnnotRect, addPage, deletePage, deletePages, movePage,
     rotate, importPdf, extract, search, getWidgets, setWidget, undo, redo, save, status,
