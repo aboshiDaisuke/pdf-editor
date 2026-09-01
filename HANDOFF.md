@@ -5,15 +5,16 @@
 
 ## 現在の状態
 
-- ブランチ: `main`、コミット済み・未プッシュ。直近コミット:
-  - (本セッション)テキスト選択・コピー機能(下記参照)
+- ブランチ: `main`、コミット・push 済み(origin/main と一致)。直近コミット:
+  - `4f4ea21` Cache-bust worker + engine imports(古いファイルとの不一致防止)
+  - `6b63961` テキスト選択・コピー機能(下記参照)
   - `22d106a` Fix: engine worker hang on startup(重要バグ修正)
   - `6f1c376` Phase 4-2: 連続スクロール表示
   - `1e2a67b` Phase 4-1: 左ツールレール
   - `f129606` Phase 3: 先読み・サムネ遅延・検索中表示
   - `fadaf88` Phase 2: エンジンを Web Worker へ
   - `805fb1e` Phase 1: PNG往復廃止、canvas直描画
-- デプロイ: GitHub Pages(`gh-pages` ブランチ)。再デプロイは `git subtree push --prefix=web origin gh-pages`。**まだ再デプロイしていない**。
+- デプロイ: GitHub Pages(`gh-pages` ブランチ)。再デプロイは `git subtree push --prefix=web origin gh-pages`。**上記コミットまで反映済み**(`web/` と `origin/gh-pages` に差分なし)。
 - ローカル確認: `cd web && python3 -m http.server 8000` → http://localhost:8000/
 
 ## 本セッションで実施: テキスト選択・コピー(優先度1のタスク、完了)
