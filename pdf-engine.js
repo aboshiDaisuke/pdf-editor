@@ -99,7 +99,7 @@ export function createEngine(mupdf) {
         ];
         const first = run[0];
         merged.push({ text, size: Math.max(...run.map((s) => s.size)), font: first.font,
-          color: first.color, bbox, dbox: bbox, origin: first.origin, parts: run.length });
+          style: first.style, color: first.color, bbox, dbox: bbox, origin: first.origin, parts: run.length });
       }
     }
     return merged;
@@ -256,6 +256,31 @@ export function createEngine(mupdf) {
   function getText(idx) {
     return withPage(idx, (page) => getTextForPage(page));
   }
+  // Classify a PDF font so an edit can pick a look-alike replacement. mupdf's
+  // flags come from the FontDescriptor, which is often missing or wrong, so the
+  // (subset-prefix-stripped) name is checked as well.
+  const styleCache = new Map();
+  function fontStyle(font) {
+    const raw = font.getName() || "";
+    let st = styleCache.get(raw);
+    if (!st) {
+      const name = raw.replace(/^[A-Z]{6}\+/, "");
+      const n = name.toLowerCase();
+      const mono = font.isMono() || /courier|mono|consol|menlo/.test(n);
+      const sansName = /sans|gothic|kaku|helvetica|arial|verdana|tahoma|segoe|roboto|meiryo|futura|avenir|ゴシック/.test(n);
+      const serifName = /times|serif|mincho|hiramin|yumin|ryumin|song|ming|georgia|garamond|century|palatino|明朝/.test(n);
+      st = {
+        name,
+        bold: font.isBold() || /bold|heavy|black|demi|-w[6-9]\b/.test(n),
+        italic: font.isItalic() || /italic|oblique/.test(n),
+        mono,
+        serif: !mono && !sansName && (serifName || font.isSerif()),
+      };
+      styleCache.set(raw, st);
+    }
+    return st;
+  }
+
   function getTextForPage(page) {
     const st = page.toStructuredText("preserve-whitespace");
     const raw = [];
@@ -267,6 +292,7 @@ export function createEngine(mupdf) {
           text: c,
           size: Math.round(size * 10) / 10,
           font: font.getName(),
+          style: fontStyle(font),
           color: hexc,
           bbox: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
           origin: [origin[0], origin[1]],
@@ -317,6 +343,13 @@ export function createEngine(mupdf) {
     serif: { arg: "Times-Roman", res: "FEserif" },
     mono:  { arg: "Courier",     res: "FEmono" },
   };
+  // Standard-14 faces, addressed as "b14:<name>" (used to match bold/italic
+  // Latin text). Glyphs they lack (e.g. Japanese) fall back to FONT_SPECS.jp.
+  const BASE14 = new Set([
+    "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
+    "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic",
+    "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique",
+  ]);
   const localFonts = new Map();
   function hashString(s) {
     let h = 2166136261;
@@ -326,9 +359,48 @@ export function createEngine(mupdf) {
     }
     return (h >>> 0).toString(16);
   }
-  function registerFont(id, label, data) {
+  // `psName` picks the right face out of a .ttc/.otc collection (e.g. W3 vs W6
+  // in "Hiragino Mincho ProN.ttc"); without it the first face is used.
+  function registerFont(id, label, data, psName) {
     if (!id || !data) return;
-    localFonts.set(id, { label: label || id, data });
+    localFonts.set(id, { label: label || id, data, subfont: collectionIndex(data, psName) });
+  }
+
+  // Index of the face whose PostScript name (name table, nameID 6) is `psName`
+  // inside a TrueType/OpenType collection; 0 for single fonts or no match.
+  function collectionIndex(data, psName) {
+    try {
+      if (!psName || data.length < 12) return 0;
+      const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      if (dv.getUint32(0) !== 0x74746366) return 0;   // 'ttcf'
+      const count = dv.getUint32(8);
+      for (let i = 0; i < count; i++) {
+        if (faceName(dv, dv.getUint32(12 + i * 4)) === psName) return i;
+      }
+    } catch (e) { /* malformed table — fall back to the first face */ }
+    return 0;
+  }
+  function faceName(dv, dir) {
+    const numTables = dv.getUint16(dir + 4);
+    for (let t = 0; t < numTables; t++) {
+      const rec = dir + 12 + t * 16;
+      if (dv.getUint32(rec) !== 0x6e616d65) continue;   // 'name'
+      const tbl = dv.getUint32(rec + 8);
+      const count = dv.getUint16(tbl + 2), strings = tbl + dv.getUint16(tbl + 4);
+      for (let r = 0; r < count; r++) {
+        const nr = tbl + 6 + r * 12;
+        if (dv.getUint16(nr + 6) !== 6) continue;
+        const platform = dv.getUint16(nr), len = dv.getUint16(nr + 8), off = strings + dv.getUint16(nr + 10);
+        let s = "";
+        if (platform === 3 || platform === 0) {
+          for (let k = 0; k + 1 < len; k += 2) s += String.fromCharCode(dv.getUint16(off + k));
+        } else {
+          for (let k = 0; k < len; k++) s += String.fromCharCode(dv.getUint8(off + k));
+        }
+        if (s) return s;
+      }
+    }
+    return null;
   }
   function listFonts() {
     return [
@@ -350,8 +422,11 @@ export function createEngine(mupdf) {
       let font, res;
       if (fontKey && localFonts.has(fontKey)) {
         const spec = localFonts.get(fontKey);
-        font = new mupdf.Font(spec.label || "LocalFont", spec.data);
+        font = new mupdf.Font(spec.label || "LocalFont", spec.data, spec.subfont || 0);
         res = "FElocal" + hashString(fontKey);
+      } else if (fontKey && fontKey.startsWith("b14:") && BASE14.has(fontKey.slice(4))) {
+        font = new mupdf.Font(fontKey.slice(4));
+        res = "FE" + fontKey.slice(4).replace(/[^A-Za-z]/g, "");
       } else {
         const spec = FONT_SPECS[fontKey] || FONT_SPECS.jp;
         font = new mupdf.Font(spec.arg);
@@ -372,34 +447,70 @@ export function createEngine(mupdf) {
   }
   const fmt = (n) => Number(n).toFixed(4).replace(/\.?0+$/, "") || "0";
 
+  // Lay `text` out as lines of font runs. A character the chosen font has no
+  // glyph for (gid 0) switches to the built-in CJK font, so e.g. a Times-Bold
+  // edit can still contain Japanese. Widths are in units of the font size.
+  function layoutText(doc, fontKey, text) {
+    const ent = embedFont(doc, fontKey);
+    const used = new Map([[ent.name, ent]]);
+    let fallback = null;
+    const lines = textLines(text).map((line) => {
+      const runs = [];
+      let width = 0;
+      for (const ch of line) {
+        const cp = ch.codePointAt(0);
+        let e = ent, gid = ent.font.encodeCharacter(cp);
+        if (gid === 0) {
+          fallback = fallback || embedFont(doc, "jp");
+          const g = fallback.font.encodeCharacter(cp);
+          if (g) { e = fallback; gid = g; used.set(e.name, e); }
+        }
+        // Identity-encoded CID font: code == gid.
+        const hex = gid.toString(16).padStart(4, "0");
+        const last = runs[runs.length - 1];
+        if (last && last.ent === e) last.hex += hex;
+        else runs.push({ ent: e, hex });
+        width += e.font.advanceGlyph(gid);
+      }
+      return { runs, width };
+    });
+    return { lines, fonts: [...used.values()], width: Math.max(0, ...lines.map((l) => l.width)) };
+  }
+  const runOps = (runs, size) => runs.map((r) => `/${r.ent.name} ${fmt(size)} Tf <${r.hex}> Tj`).join(" ");
+  function layoutMetrics(doc, fontKey, text, size) {
+    const lay = layoutText(doc, fontKey, text);
+    const lineHeight = size * 1.22;
+    return {
+      lay,
+      lineHeight,
+      width: Math.max(1, lay.width * size),
+      height: Math.max(size, lay.lines.length * lineHeight),
+    };
+  }
+
   // Draw `text` at display-space baseline (dx, dy). Returns the text width in
   // points (for the optional whiteout box). Upright on rotated pages.
   function insertText(doc, page, dx, dy, text, size, color, fontKey) {
-    const ent = embedFont(doc, fontKey);
+    const lay = layoutText(doc, fontKey, text);
 
-    // Encode to glyph ids (Identity-encoded CID font: code == gid) + measure.
-    const lines = textLines(text);
-    const encoded = lines.map((line) => encodeLine(ent.font, line));
-    const width = Math.max(0, ...encoded.map((l) => l.width * size));
-
-    // Register the font in the page's resources (inheritable-aware so we never
+    // Register the fonts in the page's resources (inheritable-aware so we never
     // shadow resources the existing content already relies on).
     const pd = page.getObject();
-    resourceSubDict(doc, pageResources(doc, pd), "Font").put(ent.name, ent.ref);
+    const fonts = resourceSubDict(doc, pageResources(doc, pd), "Font");
+    for (const ent of lay.fonts) fonts.put(ent.name, ent.ref);
 
     // Cancel the page transform with `cm` so we draw directly in display space,
     // then flip Y (display space is y-down, PDF text space is y-up).
     const cm = invertAffine(page.getTransform()).map(fmt).join(" ");
     const [cr, cg, cb] = col(color);
     const lineHeight = size * 1.22;
-    const commands = encoded.map((line, i) =>
-      `1 0 0 -1 ${fmt(dx)} ${fmt(dy + i * lineHeight)} Tm <${line.hex}> Tj`).join(" ");
-    const stream = `q ${cm} cm BT /${ent.name} ${fmt(size)} Tf ` +
-      `${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg ${commands} ET Q`;
+    const commands = lay.lines.map((line, i) =>
+      `1 0 0 -1 ${fmt(dx)} ${fmt(dy + i * lineHeight)} Tm ${runOps(line.runs, size)}`).join(" ");
+    const stream = `q ${cm} cm BT ${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg ${commands} ET Q`;
 
     appendContentStream(doc, pd, stream);
     page.update();
-    return width;
+    return lay.width * size;
   }
 
   // Append a content stream after the page's existing content (never replace it).
@@ -454,14 +565,13 @@ export function createEngine(mupdf) {
   }
 
   function setTextAppearance(doc, annot, text, size, color, bg, fontKey) {
-    const ent = embedFont(doc, fontKey);
-    const m = textMetrics(ent.font, text, size);
+    const m = layoutMetrics(doc, fontKey, text, size);
     const pad = Math.max(3, size * 0.22);
     const w = m.width + pad * 2;
     const h = m.height + pad * 2;
     const resources = doc.newDictionary();
     const fonts = doc.newDictionary();
-    fonts.put(ent.name, ent.ref);
+    for (const ent of m.lay.fonts) fonts.put(ent.name, ent.ref);
     resources.put("Font", fonts);
     const [cr, cg, cb] = col(color);
     const chunks = [];
@@ -469,11 +579,10 @@ export function createEngine(mupdf) {
       const [br, bgc, bb] = bg === true || bg === "white" ? [1, 1, 1] : col(bg, [1, 1, 1]);
       chunks.push(`q ${fmt(br)} ${fmt(bgc)} ${fmt(bb)} rg 0 0 ${fmt(w)} ${fmt(h)} re f Q`);
     }
-    chunks.push(`BT /${ent.name} ${fmt(size)} Tf ${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg`);
-    textLines(text).forEach((line, i) => {
-      const enc = encodeLine(ent.font, line);
+    chunks.push(`BT ${fmt(cr)} ${fmt(cg)} ${fmt(cb)} rg`);
+    m.lay.lines.forEach((line, i) => {
       const y = h - pad - size - i * m.lineHeight;
-      chunks.push(`1 0 0 1 ${fmt(pad)} ${fmt(y)} Tm <${enc.hex}> Tj`);
+      chunks.push(`1 0 0 1 ${fmt(pad)} ${fmt(y)} Tm ${runOps(line.runs, size)}`);
     });
     chunks.push("ET");
     const buf = new mupdf.Buffer();
@@ -514,8 +623,7 @@ export function createEngine(mupdf) {
     return withPage(idx, (page) => {
       size = numOr(size, 14);
       const doc = state.doc;
-      const ent = embedFont(doc, fontKey || "jp");
-      const m = textMetrics(ent.font, text, size);
+      const m = layoutMetrics(doc, fontKey || "jp", text, size);
       const pad = Math.max(3, size * 0.22);
       const w = m.width + pad * 2;
       const h = m.height + pad * 2;
