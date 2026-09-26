@@ -4,7 +4,7 @@
 // index.html with a stale, cached pdf-engine.js (which throws e.g. "unknown
 // engine function: renderPixels" when the two versions disagree).
 import * as mupdf from "./mupdf.js";
-import { createEngine } from "./pdf-engine.js?v=2";
+import { createEngine } from "./pdf-engine.js?v=3";
 
 const engine = createEngine(mupdf);
 

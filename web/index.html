@@ -196,6 +196,29 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .overlay .prev.img-box { fill: rgba(215,25,32,.12); stroke: var(--pri); stroke-width: 1.5; stroke-dasharray: 6 4; }
 .page-stage.tool-select .page-canvas { cursor: default; }
 
+/* ===== Inline text editing (Acrobat-style) ===== */
+.text-layer { position: absolute; top: 0; left: 0; }
+.text-layer .tl-box { position: absolute; border: 1px dashed rgba(59,110,200,.45); border-radius: 2px; cursor: text; transition: background var(--tr), border-color var(--tr); }
+.text-layer .tl-box:hover { border: 1px solid var(--pri); background: rgba(215,25,32,.06); }
+.ie { position: absolute; z-index: 20; line-height: normal; }
+.ie-text { white-space: pre; outline: 1.5px solid var(--pri); outline-offset: 1px; padding: 0 2px; margin-left: -2px; cursor: text; caret-color: var(--pri); box-shadow: 0 0 0 4px rgba(215,25,32,.10); }
+.ie-bar { position: absolute; left: -2px; bottom: calc(100% + 8px); display: flex; align-items: center; gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); white-space: nowrap; font-size: 12px; }
+.ie.below .ie-bar { bottom: auto; top: calc(100% + 8px); }
+.ie-bar select, .ie-bar input[type="number"] { height: 28px; border: 1px solid var(--border); border-radius: var(--radius); padding: 0 6px; font-size: 12px; font-family: inherit; outline: none; }
+.ie-bar select { max-width: 170px; }
+.ie-bar input[type="number"] { width: 58px; }
+.ie-bar input[type="color"] { width: 28px; height: 28px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--elev); cursor: pointer; }
+.ie-bar select:focus, .ie-bar input:focus { border-color: var(--pri); }
+.ie-bar button { height: 28px; min-width: 28px; padding: 0 8px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--txt2); font-size: 13px; font-family: inherit; cursor: pointer; transition: all var(--tr); }
+.ie-bar button:hover { background: var(--surface-h); border-color: var(--border); color: var(--txt); }
+.ie-bar button:disabled { opacity: .35; cursor: default; background: transparent; border-color: transparent; }
+.ie-bar button.on { background: var(--pri-l); color: var(--pri); border-color: rgba(215,25,32,.25); }
+.ie-bar .ie-b { font-weight: 800; }
+.ie-bar .ie-i { font-style: italic; font-family: Georgia, serif; }
+.ie-bar .ie-ok { background: var(--pri); color: #fff; font-weight: 600; }
+.ie-bar .ie-ok:hover { background: var(--pri-h); color: #fff; border-color: transparent; }
+.ie-bar .ie-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
+
 /* ===== Right panel (search / forms) ===== */
 .right-panel { width: 280px; background: var(--surface); border-left: 1px solid var(--border); display: none; flex-direction: column; flex-shrink: 0; }
 .right-panel.show { display: flex; }
@@ -219,25 +242,10 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
 .rp-empty { font-size: 12px; color: var(--txt3); text-align: center; padding: 30px 10px; }
 
 /* ===== Modal / Dialog ===== */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.36); z-index: 500; display: flex; align-items: center; justify-content: center; animation: fadeIn .15s ease-out; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 760px; max-width: calc(100vw - 40px); max-height: 82vh; display: flex; flex-direction: column; box-shadow: var(--shadow-xl); animation: modalIn .2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } }
 @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(8px); } }
-.modal-header { padding: 22px 26px 14px; display: flex; align-items: center; justify-content: space-between; }
-.modal-header h2 { font-size: 17px; font-weight: 700; }
 .modal-close { width: 32px; height: 32px; border: 1px solid transparent; border-radius: 6px; background: transparent; cursor: pointer; font-size: 18px; color: var(--txt3); transition: all var(--tr); display: flex; align-items: center; justify-content: center; }
 .modal-close:hover { background: var(--border); color: var(--txt); }
-.modal-subtitle { padding: 0 26px 14px; font-size: 12px; color: var(--txt3); }
-.modal-body { flex: 1; overflow-y: auto; padding: 0 26px 18px; }
-.text-row { display: flex; align-items: center; min-height: 40px; padding: 8px 10px 8px 12px; background: var(--surface-h); border-radius: 6px; margin-bottom: 6px; gap: 10px; transition: all var(--tr); border: 1px solid var(--border); }
-.text-row:hover { background: var(--pri-l); border-color: rgba(215,25,32,.15); }
-.text-content { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--txt); }
-.text-meta { font-size: 10px; color: var(--txt3); font-weight: 600; padding: 2px 6px; background: var(--surface); border-radius: 4px; white-space: nowrap; }
-.text-edit-btn { padding: 6px 14px; border: none; border-radius: 6px; background: var(--pri); color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; transition: all var(--tr); white-space: nowrap; }
-.text-edit-btn:hover { background: var(--pri-h); }
-.modal-footer { padding: 14px 26px 22px; text-align: right; border-top: 1px solid var(--border); }
-.modal-footer button { padding: 8px 22px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 500; color: var(--txt2); transition: all var(--tr); }
-.modal-footer button:hover { background: var(--bg); }
 
 .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.32); z-index: 600; display: flex; align-items: center; justify-content: center; animation: fadeIn .12s ease-out; }
 .dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; width: 480px; max-width: calc(100vw - 40px); box-shadow: var(--shadow-xl); animation: modalIn .18s ease-out; }
@@ -456,7 +464,7 @@ input[type="text"]::placeholder, textarea::placeholder { color: var(--txt3); }
   <aside class="tool-rail" id="toolRail">
     <div class="toolbar-group edit-tools">
       <button class="tbtn tool" data-tool="select" onclick="setTool('select')" title="オブジェクト選択（画像・図形・追加文字を移動/リサイズ）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l7.5 18 2.5-7.5L20.5 11z"/></svg>オブジェクト</button>
-      <button class="tbtn" id="btnEditText" onclick="editTextMode()" title="既存テキストを編集（ページ上の文字をダブルクリックでも可）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
+      <button class="tbtn tool" id="btnEditText" data-tool="editText" onclick="setTool('editText')" title="テキストを編集（文字をクリックしてその場で書き換え／ダブルクリックでも可）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>編集</button>
       <button class="tbtn tool" data-tool="addText" onclick="setTool('addText')" title="テキスト追加"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>文字</button>
       <button class="tbtn tool" data-tool="addImage" onclick="setTool('addImage')" title="画像挿入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>画像</button>
       <button class="tbtn tool icon-only" data-tool="eyedropper" onclick="setTool('eyedropper')" title="スポイト（ページ上の色を取得）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 3l2 2-8.5 8.5-3 1 1-3L19 3z"/><path d="M14 4l6 6"/><path d="M5 19c1.8-3.8 4.2-5.8 7.5-5.5"/><path d="M4 21h7"/></svg></button>
@@ -557,6 +565,8 @@ const S = {
   textSel: null,              // text selection: { page, p, q, dragging, rects, text }
   panel: null,                // 'search' | 'forms' | null
   search: { q: '', results: [], idx: -1 },
+  inlineEdit: null,           // open on-page text editor (see openInlineEditor)
+  editCommit: Promise.resolve(),
 };
 let selectMode = false;
 const selectedPages = new Set();
@@ -685,7 +695,8 @@ async function prepareTextFont(fontId) {
     const rec = localFontRecords.get(fontId);
     if (!rec) return 'jp';
     const blob = await rec.blob();
-    await call('registerFont', fontId, rec.fullName || rec.family || fontId, new Uint8Array(await blob.arrayBuffer()));
+    await call('registerFont', fontId, rec.postscriptName || rec.fullName || rec.family || fontId,
+      new Uint8Array(await blob.arrayBuffer()), rec.postscriptName);
     registeredLocalFonts.add(fontId);
   }
   return fontId || 'jp';
@@ -721,7 +732,7 @@ const engineReady = (async () => {
   // ?v= is a cache-buster — bump it (and the matching one in engine-worker.js's
   // import of pdf-engine.js) on every deploy so a fresh index.html never pairs
   // with a stale, cached worker/engine. See engine-worker.js for the full note.
-  worker = new Worker('./engine-worker.js?v=2', { type: 'module' });
+  worker = new Worker('./engine-worker.js?v=3', { type: 'module' });
   // Wait for the worker's own id:0 "ready" message (see engine-worker.js) instead
   // of firing an RPC call right after `new Worker()`: mupdf.js + its ~10MB wasm
   // take real time to load, and a message sent that early can arrive before the
@@ -1225,6 +1236,7 @@ function updateCurrentFromScroll() {
 }
 
 async function renderPage() {
+  if (S.inlineEdit && !S.inlineEdit.busy) closeInlineEditor();
   const slot = $(`.page-slot[data-page="${S.cur}"]`);
   if (!slot) return;
   slot.innerHTML = '';
@@ -1246,6 +1258,7 @@ async function renderPage() {
   stage.addEventListener('dblclick', onStageDblClick);
   wrap.appendChild(stage); slot.appendChild(wrap);
   applyToolCursor(); updatePageIndicator();
+  if (S.mode === 'editText') renderTextLayer();
 
   const key = cacheKey(idx, zoom);
   const cached = pixelCache.get(key);
@@ -1292,10 +1305,12 @@ function zoomOut() { applyZoom(Math.max(0.5, S.zoom - 0.5)); }
 
 // ── Undo / Redo ──
 async function doUndo() {
+  await flushInlineEdit();
   try { const j = await api('/api/undo', {}); if (j.ok === false) return; afterStructural(j); toast('元に戻しました', 'ok'); }
   catch (e) { toast(e.message, 'err'); }
 }
 async function doRedo() {
+  await flushInlineEdit();
   try { const j = await api('/api/redo', {}); if (j.ok === false) return; afterStructural(j); toast('やり直しました', 'ok'); }
   catch (e) { toast(e.message, 'err'); }
 }
@@ -1326,41 +1341,288 @@ async function getPageText(idx) {
   if (!textCache.has(idx)) textCache.set(idx, (await api(`/api/text/${idx}`)).spans || []);
   return textCache.get(idx);
 }
-async function editTextMode() {
-  if (S.pages === 0) { toast('PDFを先に開いてください', 'info'); return; }
-  const fontsReady = ensureFontsLoaded();
-  try {
-    const spans = await getPageText(S.cur);
-    if (!spans.length) {
-      toast('このページに編集できる文字がありません（画像/スキャンされたPDFの可能性）', 'info'); return;
-    }
-    await fontsReady;
-    showTextListModal(spans);
-  } catch (e) { toast(e.message, 'err'); }
+const CJK_RE = /[　-ヿ㐀-鿿豈-﫿＀-￯]/;
+const B14_FACES = {   // [regular, bold, italic, bold italic]
+  sans: ['Helvetica', 'Helvetica-Bold', 'Helvetica-Oblique', 'Helvetica-BoldOblique'],
+  serif: ['Times-Roman', 'Times-Bold', 'Times-Italic', 'Times-BoldItalic'],
+  mono: ['Courier', 'Courier-Bold', 'Courier-Oblique', 'Courier-BoldOblique'],
+};
+// Installed Japanese faces to try, by PostScript name: [regular, bold] per class.
+const LOCAL_CJK = {
+  serif: [['HiraMinProN-W3', 'HiraMinPro-W3', 'YuMincho-Regular', 'YuMin-Medium', 'MS-Mincho', 'NotoSerifJP-Regular', 'NotoSerifCJKjp-Regular', 'SourceHanSerif-Regular'],
+          ['HiraMinProN-W6', 'HiraMinPro-W6', 'YuMincho-Demibold', 'YuMin-Demibold', 'NotoSerifJP-Bold', 'NotoSerifCJKjp-Bold', 'SourceHanSerif-Bold']],
+  sans:  [['HiraginoSans-W3', 'HiraKakuProN-W3', 'YuGothic-Regular', 'YuGo-Medium', 'Meiryo', 'NotoSansJP-Regular', 'NotoSansCJKjp-Regular'],
+          ['HiraginoSans-W6', 'HiraKakuProN-W6', 'YuGothic-Bold', 'YuGo-Bold', 'Meiryo-Bold', 'NotoSansJP-Bold', 'NotoSansCJKjp-Bold']],
+};
+const CSS_STACKS = {
+  sans: 'Helvetica, Arial, "Hiragino Sans", "Noto Sans JP", sans-serif',
+  serif: '"Times New Roman", Times, "Hiragino Mincho ProN", "Yu Mincho", serif',
+  mono: '"Courier New", Courier, monospace',
+  jp: '"Hiragino Sans", "Noto Sans JP", sans-serif',
+};
+const styleClass = st => st?.mono ? 'mono' : st?.serif ? 'serif' : 'sans';
+function localFontIdByPs(names) {
+  for (const n of names) {
+    if (!n) continue;
+    for (const [id, rec] of localFontRecords) if (rec.postscriptName === n) return id;
+  }
+  return null;
 }
-// Acrobat-style: double-click a piece of text on the page to edit it directly.
-async function onStageDblClick(e) {
-  if (S.pages === 0 || S.mode) return;   // in a tool mode, dbl-click isn't an edit
-  const p = stageCoord(e);
-  const fontsReady = ensureFontsLoaded();
+// Pick the engine font key for an edit. 'auto' = closest to the original:
+// the document's own font if it's installed here, else an installed Japanese
+// face of the same class/weight, else the matching standard font (Japanese
+// glyphs it lacks fall back to the built-in CJK font inside the engine).
+async function resolveEditFont(choice, style, text, bold, italic) {
+  if (B14_FACES[choice]) return 'b14:' + B14_FACES[choice][(bold ? 1 : 0) + (italic ? 2 : 0)];
+  if (choice !== 'auto') return prepareTextFont(choice);
+  const st = style || {}, cls = styleClass(st);
+  if (bold === !!st.bold && italic === !!st.italic) {
+    const own = localFontIdByPs([st.name]);
+    if (own) return prepareTextFont(own);
+  }
+  if (CJK_RE.test(text) && cls !== 'mono') {
+    const id = localFontIdByPs(LOCAL_CJK[cls][bold ? 1 : 0]);
+    if (id) return prepareTextFont(id);
+    if (cls === 'sans' && !bold) return 'jp';
+  }
+  return 'b14:' + B14_FACES[cls][(bold ? 1 : 0) + (italic ? 2 : 0)];
+}
+function editorFontFamily(choice, style) {
+  if (CSS_STACKS[choice]) return CSS_STACKS[choice];
+  const id = choice === 'auto' ? localFontIdByPs([style?.name]) : choice;
+  const fam = localFontRecords.get(id)?.family;
+  const stack = CSS_STACKS[choice === 'auto' ? styleClass(style) : 'sans'];
+  return fam ? `"${fam.replace(/"/g, '')}", ${stack}` : stack;
+}
+// Background behind a line, read from the rendered page (most common colour on
+// the ring just outside the text box), so the editor blends into tinted areas.
+function sampleBgColor(bbox) {
+  const canvas = $('#pageImg');
   try {
-    const spans = await getPageText(S.cur);
-    // hit-test against the display-space bbox (dbox); pick the smallest match.
-    let hit = null, best = Infinity;
-    for (const sp of spans) {
-      const b = sp.dbox || sp.bbox;
-      if (p.x >= b[0] && p.x <= b[2] && p.y >= b[1] && p.y <= b[3]) {
-        const a = (b[2] - b[0]) * (b[3] - b[1]);
-        if (a < best) { best = a; hit = sp; }
-      }
+    const z = S.zoom, W = canvas.width, H = canvas.height;
+    const cl = (v, max) => Math.max(0, Math.min(max, v));
+    const x0 = cl(Math.floor(bbox[0] * z) - 3, W - 1), y0 = cl(Math.floor(bbox[1] * z) - 3, H - 1);
+    const x1 = cl(Math.ceil(bbox[2] * z) + 3, W - 1), y1 = cl(Math.ceil(bbox[3] * z) + 3, H - 1);
+    const w = x1 - x0 + 1, h = y1 - y0 + 1;
+    const d = canvas.getContext('2d').getImageData(x0, y0, w, h).data;
+    const votes = new Map();
+    const vote = (x, y) => {
+      const i = (y * w + x) * 4;
+      const k = ((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3);
+      const v = votes.get(k) || { n: 0, r: 0, g: 0, b: 0 };
+      v.n++; v.r += d[i]; v.g += d[i + 1]; v.b += d[i + 2];
+      votes.set(k, v);
+    };
+    for (let x = 0; x < w; x++) { vote(x, 0); vote(x, h - 1); }
+    for (let y = 1; y < h - 1; y++) { vote(0, y); vote(w - 1, y); }
+    let best = null;
+    for (const v of votes.values()) if (!best || v.n > best.n) best = v;
+    return best ? rgbToHex255(best.r / best.n, best.g / best.n, best.b / best.n) : '#ffffff';
+  } catch (e) { return '#ffffff'; }
+}
+function spanAt(spans, p) {
+  let hit = null, best = Infinity;
+  for (const sp of spans) {
+    const b = sp.dbox || sp.bbox;
+    if (p.x >= b[0] - 1 && p.x <= b[2] + 1 && p.y >= b[1] - 1 && p.y <= b[3] + 1) {
+      const a = (b[2] - b[0]) * (b[3] - b[1]);
+      if (a < best) { best = a; hit = sp; }
     }
+  }
+  return hit;
+}
+// Edit mode: outline every editable line on the page (like Acrobat's Edit PDF).
+async function renderTextLayer() {
+  $('#stage')?.querySelector('.text-layer')?.remove();
+  if (S.mode !== 'editText' || !S.pages) return;
+  const page = S.cur;
+  let spans;
+  try { spans = await getPageText(page); } catch (e) { return; }
+  const stage = $('#stage');
+  if (!stage || S.mode !== 'editText' || page !== S.cur) return;
+  stage.querySelector('.text-layer')?.remove();
+  const layer = document.createElement('div'); layer.className = 'text-layer';
+  const z = S.zoom;
+  for (const sp of spans) {
+    const b = sp.dbox || sp.bbox;
+    const box = document.createElement('div'); box.className = 'tl-box';
+    Object.assign(box.style, {
+      left: `${b[0] * z - 2}px`, top: `${b[1] * z - 1}px`,
+      width: `${(b[2] - b[0]) * z + 4}px`, height: `${(b[3] - b[1]) * z + 2}px`,
+    });
+    layer.appendChild(box);
+  }
+  stage.insertBefore(layer, $('#overlay'));   // above the page image, below the SVG overlay
+  if (!spans.length) toast('このページに編集できる文字がありません（画像/スキャンされたPDFの可能性）', 'info');
+}
+async function editTextAt(p, client) {
+  // Installed fonts need a permission prompt the first time; don't hold the
+  // editor on it — the list fills in once (if) access is granted.
+  ensureFontsLoaded().then(addEditorFontOptions, () => {});
+  await S.editCommit;               // let a pending commit (and its re-render) land first
+  if (S.inlineEdit) return;
+  const page = S.cur;
+  try {
+    const spans = await getPageText(page);
+    const hit = spanAt(spans, p);
     if (!hit) {
       if (!spans.length) toast('このページに編集できる文字がありません（画像/スキャンの可能性）', 'info');
       return;
     }
-    await fontsReady;
-    showTextEditDialog(hit);
+    if (page !== S.cur || S.inlineEdit) return;
+    clearTextSelection();
+    openInlineEditor(hit, client);
   } catch (err) { toast(err.message, 'err'); }
+}
+function addEditorFontOptions() {
+  const sel = S.inlineEdit?.fontSel;
+  if (!sel) return;
+  const have = new Set([...sel.options].map(o => o.value));
+  for (const [v, l] of TEXT_FONTS) {
+    if (have.has(v)) continue;
+    const o = document.createElement('option'); o.value = v; o.textContent = l;
+    sel.appendChild(o);
+  }
+  applyEditorStyle(S.inlineEdit);   // 'auto' may now resolve to the installed original font
+}
+async function onStageDblClick(e) {
+  if (S.pages === 0 || S.mode || e.target.closest('.ie')) return;   // in a tool mode, dbl-click isn't an edit
+  editTextAt(stageCoord(e), { x: e.clientX, y: e.clientY });
+}
+function openInlineEditor(span, client) {
+  const stage = $('#stage'); if (!stage) return;
+  const z = S.zoom, b = span.bbox, st = span.style || {};
+  const boxH = (b[3] - b[1]) * z;
+  const lh = Math.max(boxH, span.size * 1.22 * z);
+  const el = document.createElement('div'); el.className = 'ie';
+  if (b[1] * z < 52) el.classList.add('below');   // no room for the bar above
+  el.style.left = `${b[0] * z}px`;
+  el.style.top = `${b[1] * z - (lh - boxH) / 2}px`;
+  const fontOpts = [['auto', '自動（元の書体に近い）'], ...TEXT_FONTS]
+    .map(([v, l]) => `<option value="${escAttr(v)}">${escHtml(l)}</option>`).join('');
+  el.innerHTML = `<div class="ie-bar">
+      <select class="font-select ie-font" title="フォント">${fontOpts}</select>
+      <input type="number" class="ie-size" min="4" max="200" step="0.5" value="${span.size}" title="サイズ (pt)">
+      <button type="button" class="ie-b" title="太字">B</button>
+      <button type="button" class="ie-i" title="斜体">I</button>
+      <input type="color" class="ie-color" value="${escAttr(span.color)}" title="文字色">
+      <span class="ie-sep"></span>
+      <button type="button" class="ie-cancel" title="キャンセル (Esc)">✕</button>
+      <button type="button" class="ie-ok" title="確定 (Enter)">確定</button>
+    </div>
+    <div class="ie-text" spellcheck="false"></div>`;
+  const ed = {
+    page: S.cur, span, el, lh, busy: false,
+    bold: !!st.bold, italic: !!st.italic,
+    orig: { text: span.text, size: span.size, color: span.color.toLowerCase(), bold: !!st.bold, italic: !!st.italic },
+    textEl: el.querySelector('.ie-text'), fontSel: el.querySelector('.ie-font'),
+    sizeIn: el.querySelector('.ie-size'), colorIn: el.querySelector('.ie-color'),
+    bBtn: el.querySelector('.ie-b'), iBtn: el.querySelector('.ie-i'),
+  };
+  const t = ed.textEl;
+  try { t.contentEditable = 'plaintext-only'; } catch (e) { t.contentEditable = 'true'; }
+  t.textContent = span.text;
+  t.style.minWidth = `${(b[2] - b[0]) * z}px`;
+  t.style.background = sampleBgColor(b);
+
+  const sync = () => applyEditorStyle(ed);
+  ed.fontSel.onchange = () => { sync(); t.focus(); };
+  ed.sizeIn.oninput = sync;
+  ed.colorIn.oninput = sync;
+  ed.bBtn.onclick = () => { ed.bold = !ed.bold; sync(); t.focus(); };
+  ed.iBtn.onclick = () => { ed.italic = !ed.italic; sync(); t.focus(); };
+  el.querySelector('.ie-cancel').onclick = () => closeInlineEditor(ed);
+  el.querySelector('.ie-ok').onclick = () => commitInlineEditor();
+  el.addEventListener('keydown', e => {
+    if (e.isComposing || e.keyCode === 229) return;   // IME conversion in progress
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeInlineEditor(ed); }
+    else if (e.key === 'Enter' && !e.shiftKey && e.target === t) { e.preventDefault(); commitInlineEditor(); }
+  });
+  t.addEventListener('paste', e => {   // plain text only, even where plaintext-only is unsupported
+    e.preventDefault();
+    document.execCommand('insertText', false, e.clipboardData?.getData('text/plain') || '');
+  });
+  ed.onDocDown = e => { if (!el.contains(e.target)) commitInlineEditor(); };
+  document.addEventListener('mousedown', ed.onDocDown, true);
+
+  stage.appendChild(el);
+  S.inlineEdit = ed;
+  sync();
+  t.focus();
+  placeCaret(t, client);
+}
+function applyEditorStyle(ed) {
+  const choice = ed.fontSel.value;
+  const size = parseFloat(ed.sizeIn.value) || ed.span.size;
+  const k = size / ed.span.size;
+  // Bold/italic map onto font faces; a specific installed font is used as-is.
+  const styleable = choice === 'auto' || !!B14_FACES[choice];
+  ed.bBtn.disabled = ed.iBtn.disabled = !styleable;
+  ed.bBtn.classList.toggle('on', styleable && ed.bold);
+  ed.iBtn.classList.toggle('on', styleable && ed.italic);
+  Object.assign(ed.textEl.style, {
+    fontFamily: editorFontFamily(choice, ed.span.style),
+    fontSize: `${size * S.zoom}px`,
+    lineHeight: `${ed.lh * k}px`,
+    minHeight: `${ed.lh * k}px`,
+    fontWeight: styleable && ed.bold ? '700' : '400',
+    fontStyle: styleable && ed.italic ? 'italic' : 'normal',
+    color: ed.colorIn.value,
+  });
+}
+// Put the caret where the user clicked (falls back to the end of the line).
+function placeCaret(el, client) {
+  let range = null;
+  if (client) {
+    if (document.caretPositionFromPoint) {
+      const pos = document.caretPositionFromPoint(client.x, client.y);
+      if (pos && el.contains(pos.offsetNode)) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+    } else if (document.caretRangeFromPoint) {
+      const r = document.caretRangeFromPoint(client.x, client.y);
+      if (r && el.contains(r.startContainer)) range = r;
+    }
+  }
+  if (range) range.collapse(true);
+  else { range = document.createRange(); range.selectNodeContents(el); range.collapse(false); }
+  const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+}
+function closeInlineEditor(ed = S.inlineEdit) {
+  if (!ed) return;
+  document.removeEventListener('mousedown', ed.onDocDown, true);
+  ed.el.remove();
+  if (S.inlineEdit === ed) S.inlineEdit = null;
+}
+function commitInlineEditor() {
+  const ed = S.inlineEdit;
+  if (!ed || ed.busy) return S.editCommit;
+  ed.busy = true;
+  S.editCommit = (async () => {
+    const text = ed.textEl.innerText.replace(/\r\n?/g, '\n').replace(/\n$/, '');
+    const size = parseFloat(ed.sizeIn.value) || ed.span.size;
+    const colorHex = ed.colorIn.value.toLowerCase();
+    const choice = ed.fontSel.value, o = ed.orig;
+    if (text === o.text && size === o.size && colorHex === o.color && choice === 'auto' &&
+        ed.bold === o.bold && ed.italic === o.italic) { closeInlineEditor(ed); return; }
+    try {
+      const font = await resolveEditFont(choice, ed.span.style, text, ed.bold, ed.italic);
+      const j = await api('/api/edit_text', { page: ed.page, bbox: ed.span.bbox, origin: ed.span.origin,
+        new_text: text, font_size: size, color: hexToRgb01(colorHex), font });
+      closeInlineEditor(ed);
+      if (ed.page === S.cur) afterContentEdit(j);
+      else { applyStatus(j); textCache.delete(ed.page); pixelCache.clear(); updateThumb(ed.page); }
+      toast('テキストを変更しました', 'ok');
+    } catch (e) {
+      ed.busy = false;
+      toast('テキスト編集に失敗: ' + e.message, 'err');
+      if (ed.el.isConnected) ed.textEl.focus(); else closeInlineEditor(ed);
+    }
+  })();
+  return S.editCommit;
+}
+// Commit any open inline edit before an action that reads/changes the document.
+async function flushInlineEdit() {
+  if (S.inlineEdit) commitInlineEditor();
+  await S.editCommit;
 }
 // Click an annotation while the erase tool is active to delete it.
 async function eraseAt(p) {
@@ -1401,47 +1663,6 @@ function fitWidth() {
   const ptW = canvas.width / S.zoom;                   // page width in display points
   applyZoom(Math.max(0.5, Math.min(8, area / ptW)));
 }
-function showTextListModal(spans) {
-  const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
-  overlay.innerHTML = `<div class="modal">
-      <div class="modal-header"><h2>テキスト編集</h2><button class="modal-close">&times;</button></div>
-      <div class="modal-subtitle">編集したいテキストの「編集」ボタンをクリック（ページ上の文字をダブルクリックでも編集できます）</div>
-      <div class="modal-body" id="textListBody"></div>
-      <div class="modal-footer"><button id="tlClose">閉じる</button></div>
-    </div>`;
-  document.body.appendChild(overlay);
-  const close = () => overlay.remove();
-  overlay.querySelector('.modal-close').onclick = close;
-  overlay.querySelector('#tlClose').onclick = close;
-  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-  const body = overlay.querySelector('#textListBody');
-  spans.forEach(sp => {
-    const row = document.createElement('div'); row.className = 'text-row';
-    row.innerHTML = `<span class="text-content">${escHtml(sp.text)}</span><span class="text-meta">${sp.size}pt</span><button class="text-edit-btn">編集</button>`;
-    row.querySelector('.text-edit-btn').onclick = () => { close(); showTextEditDialog(sp); };
-    body.appendChild(row);
-  });
-}
-function showTextEditDialog(span) {
-  openDialog(`<h3>テキストを編集</h3>
-    <textarea id="dlgEditText">${escHtml(span.text)}</textarea>
-    <div class="dialog-row"><label>フォント:</label>${fontPickerHtml('dlgEditFont')}</div>
-    <div class="dialog-row"><label>サイズ:</label><input type="number" id="dlgEditSize" value="${span.size}" min="4" max="200" step="0.5">
-      <label>色:</label><input type="color" id="dlgEditColor" value="${escAttr(span.color)}"></div>`,
-    async (root) => {
-      const newText = root.querySelector('#dlgEditText').value;
-      const fontSize = parseFloat(root.querySelector('#dlgEditSize').value) || span.size;
-      const color = hexToRgb01(root.querySelector('#dlgEditColor').value);
-      const font = await prepareTextFont(root.querySelector('#dlgEditFont').value);
-      if (newText === span.text && font === 'jp') return true;
-      try {
-        const j = await api('/api/edit_text', { page: S.cur, bbox: span.bbox, origin: span.origin, new_text: newText, font_size: fontSize, color, font });
-        afterContentEdit(j); toast('テキストを変更しました', 'ok');
-      } catch (e) { toast('テキスト編集に失敗: ' + e.message, 'err'); }
-      return true;
-    }, { okLabel: '変更', focus: '#dlgEditText', selectAll: true });
-}
-
 // ── Tools ──
 const DRAG_TOOLS = ['rect', 'ellipse', 'line', 'highlight', 'underline', 'strikeout', 'arrow', 'redact'];
 const TOOL_LABELS = { addText: 'テキスト追加', addImage: '画像挿入', eyedropper: 'スポイト', rect: '四角', ellipse: '楕円', line: '直線', highlight: 'ハイライト', underline: '下線', strikeout: '取り消し線', ink: 'フリーハンド', arrow: '矢印', note: 'コメント', redact: '墨消し', stamp: 'スタンプ' };
@@ -1470,8 +1691,9 @@ function setTool(tool) {
     $('#toWidthWrap').style.display = (tool === 'note' || tool === 'highlight' || tool === 'eyedropper') ? 'none' : 'flex';
     $('#toFillWrap').style.display = isShape ? 'flex' : 'none';
   }
-  applyToolCursor();
-  const hint = tool === 'note' ? 'ページ上をクリックしてコメントを配置' :
+  applyToolCursor(); renderTextLayer();
+  const hint = tool === 'editText' ? '文字をクリックするとその場で編集できます（Enter で確定 / Esc でキャンセル）' :
+               tool === 'note' ? 'ページ上をクリックしてコメントを配置' :
                tool === 'ink' ? 'ページ上でドラッグして手書き' :
                tool === 'addText' ? 'ページ上をクリックして配置' :
                tool === 'select' ? '画像・図形・追加文字をクリックして選択 → ドラッグで移動・四隅でリサイズ' :
@@ -1488,12 +1710,12 @@ function clearTool() {
   $$('.tool').forEach(b => b.classList.remove('active'));
   $('#toolOptions').classList.remove('show');
   $('#mainLayout').classList.remove('has-options');
-  clearPreview(); applyToolCursor();
+  clearPreview(); applyToolCursor(); renderTextLayer();
 }
 function applyToolCursor() {
   const stage = $('#stage'); if (!stage) return;
   stage.classList.remove('tool-draw', 'tool-text', 'tool-select', 'tool-eyedropper');
-  if (!S.mode) return;
+  if (!S.mode || S.mode === 'editText') return;
   if (S.mode === 'select') stage.classList.add('tool-select');
   else if (S.mode === 'eyedropper') stage.classList.add('tool-eyedropper');
   else if (S.mode === 'addText' || S.mode === 'note' || S.mode === 'stamp') stage.classList.add('tool-text');
@@ -1589,8 +1811,14 @@ function stageCoord(e) {
   return { x: (e.clientX - r.left) / S.zoom, y: (e.clientY - r.top) / S.zoom };
 }
 async function onStageMouseDown(e) {
+  if (e.target.closest('.ie')) return;   // clicks inside the inline text editor
   if (!S.mode) { onTextSelectDown(stageCoord(e)); return; }
   const p = stageCoord(e);
+  if (S.mode === 'editText') {
+    // No default action: it would move focus off the editor this opens.
+    if (e.button === 0) { e.preventDefault(); editTextAt(p, { x: e.clientX, y: e.clientY }); }
+    return;
+  }
   if (S.mode === 'select') { await onSelectDown(p); return; }
   if (S.mode === 'erase') { await eraseAt(p); return; }
   if (S.mode === 'eyedropper') { pickColorAt(p); return; }
@@ -1976,6 +2204,7 @@ async function extractPages() {
 function defaultName() { const n = S.filename || 'edited.pdf'; return n.toLowerCase().endsWith('.pdf') ? n : n + '.pdf'; }
 async function save() {
   if (S.pages === 0) return;
+  await flushInlineEdit();
   try {
     const bytes = await call('save');
     applyStatus(await call('status'));
@@ -1985,6 +2214,7 @@ async function save() {
 }
 async function saveAs() {
   if (S.pages === 0) return;
+  await flushInlineEdit();
   showSaveNameDialog();
 }
 function showSaveNameDialog() {
@@ -2528,7 +2758,7 @@ function confirmDialog(message, onOk, okLabel) {
 
 // ── Keyboard shortcuts ──
 document.addEventListener('keydown', e => {
-  const typing = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+  const typing = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); save(); return; }
   if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); if (S.panel !== 'search') togglePanel('search'); else $('#searchQ')?.focus(); return; }
